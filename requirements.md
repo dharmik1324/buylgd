@@ -24,7 +24,7 @@ JWT_SECRET=your_jwt_secret
 
 Configure the following in `g:\Office-work\Diamonds\frontend\.env`:
 ```env
-VITE_API_BASE_URL=https://buylgd.onrender.com/api
+VITE_API_BASE_URL=https://buylgd-backend-ne5n.onrender.com/api
 ```
 
 ## Setup Instructions
@@ -54,7 +54,7 @@ npm run dev:frontend
 ## Deployment Steps
 1.  **Backend**: Host on a platform like Render or Heroku. Ensure `MONGO_URI` is set in the environment variables.
 2.  **Frontend**:
-    *   Update `VITE_API_BASE_URL` in `frontend/.env` to point to your live backend URL (e.g., `https://buylgd.onrender.com/api`).
+    *   Update `VITE_API_BASE_URL` in `frontend/.env` to point to your live backend URL (e.g., `https://buylgd-backend-ne5n.onrender.com/api`).
     *   Run `npm run build` in the `frontend` directory.
     *   Deploy the generated `dist/` folder to your hosting provider (like Vercel, Netlify, or your domain `app.buylgd.in`).
 

@@ -205,7 +205,7 @@ export const PublicInventory = () => {
           />
 
           <div className="flex-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8 px-1 sm:px-0">
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-8 px-1 sm:px-0">
               <AnimatePresence mode="popLayout">
                 {loading && data.length === 0 ? (
                   Array.from({ length: 8 }).map((_, i) => (
@@ -275,7 +275,7 @@ export const PublicInventory = () => {
                       </button>
                     </div>
 
-                    <div className="h-[35%] w-full p-1.5 sm:p-6 flex flex-col justify-between">
+                    <div className="h-[35%] w-full p-1 sm:p-6 flex flex-col justify-between">
                       <div>
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-0.5 sm:mb-1">
                           <div className="mb-0.5 xl:mb-0 w-full sm:w-auto">

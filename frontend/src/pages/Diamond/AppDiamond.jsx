@@ -133,7 +133,7 @@ export const AppDiamond = () => {
 
   const getParams = (page = 1) => {
     const params = { page, limit: 15, ...filters };
-    
+
     // Only send range filters if they differ from the metadata defaults
     if (params.priceMin === metadata.priceMin) delete params.priceMin;
     if (params.priceMax === metadata.priceMax) delete params.priceMax;
@@ -189,7 +189,7 @@ export const AppDiamond = () => {
           </motion.h1>
 
           <div className="flex justify-center mt-6 sm:mt-8 w-full overflow-hidden">
-            <div className="flex flex-nowrap gap-2 sm:gap-4 w-full justify-start sm:justify-center overflow-x-auto pb-4 scrollbar-hide px-4 items-center">
+            <div className="flex flex-nowrap gap-2 sm:gap-4 w-full justify-start sm:justify-center overflow-x-auto scrollbar-hide items-center">
               {uniqueShapes.map((shape) => {
                 const selected = filters.shapes?.some(s => s.toLowerCase() === shape.toLowerCase());
                 const imageUrl = getImageUrl(shape);
@@ -241,7 +241,7 @@ export const AppDiamond = () => {
           />
 
           <div className="flex-1">
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8 px-1 sm:px-0">
+            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-3 sm:gap-4 p-2 pl-2 pr-2 md:gap-8 px-1 sm:px-0">
               <AnimatePresence mode="popLayout">
                 {loading && data.length === 0 ? (
                   Array.from({ length: 8 }).map((_, i) => (
@@ -269,18 +269,18 @@ export const AppDiamond = () => {
                       }`}
                   >
                     {/* Image Section */}
-                    <div className={`relative w-full aspect-square flex items-center justify-center p-4 transition-colors duration-500
+                    <div className={`relative w-full aspect-square flex items-center justify-center p-1 sm:p-4 transition-colors duration-500
                       ${isDarkMode ? "bg-gradient-to-br from-[#2a2a2a] to-[#1c1c1c]" : "bg-gradient-to-br from-gray-50 to-[#F8F9FA]"}`}>
 
                       {/* Checkbox (Top Left) */}
-                      <div className="absolute top-3 left-3 z-10">
+                      <div className="absolute top-1 left-1 sm:top-3 sm:left-3 z-10">
                         <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onClick={(e) => e.stopPropagation()} />
                       </div>
 
                       {/* Heart Icon (Top Right) */}
                       <button
                         onClick={(e) => { e.stopPropagation(); dispatch(toggleWishlist(item)); }}
-                        className={`absolute top-3 right-3 p-1.5 rounded-full backdrop-blur-sm transition-all duration-200 cursor-pointer z-10 ${isWishlisted(item._id)
+                        className={`absolute top-1 right-1 sm:top-3 sm:right-3 p-1 rounded-full backdrop-blur-sm transition-all duration-200 cursor-pointer z-10 ${isWishlisted(item._id)
                           ? "bg-red-500 text-white shadow-md"
                           : isDarkMode ? "bg-black/40 text-gray-300 hover:text-white" : "bg-white/60 text-gray-500 hover:text-gray-800 shadow-sm"
                           }`}
@@ -311,7 +311,7 @@ export const AppDiamond = () => {
                     </div>
 
                     {/* Content Section */}
-                    <div className={`flex flex-col flex-1 p-3 sm:p-4 text-left border-t ${isDarkMode ? "border-gray-800" : "border-gray-100"}`}>
+                    <div className={`flex flex-col flex-1 p-1 sm:p-4 text-left border-t ${isDarkMode ? "border-gray-800" : "border-gray-100"}`}>
                       {/* Title Line */}
                       <h3 className={`text-xs sm:text-sm font-semibold truncate ${isDarkMode ? "text-gray-100" : "text-gray-800"}`}>
                         {item.Shape} {item.Weight?.toFixed(2)}ct {item.Color} {item.Clarity}
