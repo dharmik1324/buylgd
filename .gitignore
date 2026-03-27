@@ -1,0 +1,17 @@
+node_modules/
+.env
+*/.env
+
+dist/
+build/
+*.log
+.DS_Store
+.vscode/
+.idea/
+frontend/node_modules/
+server/node_modules/
+frontend/dist/
+frontend/build/
+server/dist/
+server/build/
+server/sync_data_restore.js

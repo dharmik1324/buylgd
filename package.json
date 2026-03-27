@@ -1,0 +1,25 @@
+{
+  "name": "diamonds",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build --prefix frontend",
+    "build:server": "npm run build --prefix server",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:server": "npm run start --prefix server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zaranapatel1510/Diamonds.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Zaranapatel1510/Diamonds/issues"
+  },
+  "homepage": "https://github.com/Zaranapatel1510/Diamonds#readme"
+}
