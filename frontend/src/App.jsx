@@ -1,4 +1,4 @@
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Login } from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
 import { ForgotPassword } from "./pages/auth/ForgotPassword";
@@ -29,9 +29,12 @@ import { Support } from "./pages/Diamond/Support";
 import { Profile } from "./pages/Diamond/Profile";
 import { Chatbox } from "./pages/Diamond/Chatbox";
 import { GuidePage } from "./pages/Diamond/GuidePage";
-import { store } from "./store/store";
+import { AnimatePresence } from "framer-motion";
+import PageTransition from "./components/common/PageTransition";
 
 function App() {
+  const location = useLocation();
+
   return (
     <>
       <ToastContainer
@@ -42,63 +45,98 @@ function App() {
         closeOnClick
         theme="colored"
       />
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route
-          element={
-            <CheckAuth>
-              <AppLayout />
-            </CheckAuth>
-          }
-        >
-          {/* <Route path="/about" element={<About />} /> */}
-          <Route path="/diamonds" element={<AppDiamond />} />
-          <Route path="/:companyName/inventory" element={<AppDiamond />} />
-          <Route path="/:companyName/shop" element={<AppDiamond />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/:companyName/cart" element={<Cart />} />
-          {/* <Route path="/contact" element={<Contact />} /> */}
-          {/* <Route path="/process" element={<Process />} /> */}
-          {/* <Route path="/special-cuts" element={<SpecialCuts />} /> */}
-          <Route path="/diamonds/diamond-details" element={<AppDiamondDetails />} />
-          <Route path="/:companyName/diamonds/details" element={<AppDiamondDetails />} />
-          <Route path="/filter-selection" element={<FilterPage />} />
-          <Route path="/:companyName/selection" element={<FilterPage />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/:companyName/support" element={<Support />} />
-          <Route path="/chatbox" element={<Chatbox />} />
-          <Route path="/:companyName/chatbox" element={<Chatbox />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/:companyName/profile" element={<Profile />} />
-        </Route>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route
+            element={
+              <CheckAuth>
+                <PageTransition>
+                  <AppLayout />
+                </PageTransition>
+              </CheckAuth>
+            }
+          >
+            {/* <Route path="/about" element={<About />} /> */}
+            <Route path="/diamonds" element={<AppDiamond />} />
+            <Route path="/:companyName/inventory" element={<AppDiamond />} />
+            <Route path="/:companyName/shop" element={<AppDiamond />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/:companyName/cart" element={<Cart />} />
+            {/* <Route path="/contact" element={<Contact />} /> */}
+            {/* <Route path="/process" element={<Process />} /> */}
+            {/* <Route path="/special-cuts" element={<SpecialCuts />} /> */}
+            <Route path="/diamonds/diamond-details" element={<AppDiamondDetails />} />
+            <Route path="/:companyName/diamonds/details" element={<AppDiamondDetails />} />
+            <Route path="/filter-selection" element={<FilterPage />} />
+            <Route path="/:companyName/selection" element={<FilterPage />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/:companyName/support" element={<Support />} />
+            <Route path="/chatbox" element={<Chatbox />} />
+            <Route path="/:companyName/chatbox" element={<Chatbox />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/:companyName/profile" element={<Profile />} />
+          </Route>
 
-        <Route
-          element={
-            <CheckAuth>
-              <Layout />
-            </CheckAuth>
-          }
-        >
-          <Route path="/admin/dashboard" element={<Dashboard />} />
-          <Route path="/admin/diamonds" element={<Diamond />} />
-          <Route path="/admin/users" element={<Users />} />
-          <Route path="/admin/logs" element={<Logs />} />
-          <Route path="/admin/reports" element={<Reports />} />
-          <Route path="/admin/settings" element={<Setting />} />
-          <Route path="/admin/notifications" element={<Notifications />} />
-          <Route path="/admin/orders" element={<Orders />} />
-          <Route path="/admin/inquiries" element={<Inquiries />} />
-        </Route>
+          <Route
+            element={
+              <CheckAuth>
+                <PageTransition>
+                  <Layout />
+                </PageTransition>
+              </CheckAuth>
+            }
+          >
+            <Route path="/admin/dashboard" element={<Dashboard />} />
+            <Route path="/admin/diamonds" element={<Diamond />} />
+            <Route path="/admin/users" element={<Users />} />
+            <Route path="/admin/logs" element={<Logs />} />
+            <Route path="/admin/reports" element={<Reports />} />
+            <Route path="/admin/settings" element={<Setting />} />
+            <Route path="/admin/notifications" element={<Notifications />} />
+            <Route path="/admin/orders" element={<Orders />} />
+            <Route path="/admin/inquiries" element={<Inquiries />} />
+          </Route>
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/guide" element={<GuidePage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route 
+            path="/login" 
+            element={
+              <PageTransition>
+                <Login />
+              </PageTransition>
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              <PageTransition>
+                <Register />
+              </PageTransition>
+            } 
+          />
+          <Route 
+            path="/forgot-password" 
+            element={
+              <PageTransition>
+                <ForgotPassword />
+              </PageTransition>
+            } 
+          />
+          <Route 
+            path="/guide" 
+            element={
+              <PageTransition>
+                <GuidePage />
+              </PageTransition>
+            } 
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AnimatePresence>
     </>
   );
 }
 
 export default App;
+
 

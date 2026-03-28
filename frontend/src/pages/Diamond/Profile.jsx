@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { logout } from "../../store/authSlice";
+import { logout, logoutUser } from "../../store/authSlice";
 import { removeFromCart } from "../../store/cartSlice";
 import { releaseHold } from "../../store/diamondSlice";
 import { toggleWishlist, removeFromWishlist } from "../../store/wishlistSlice";
@@ -33,9 +33,14 @@ export const Profile = () => {
         return null;
     }
 
-    const handleLogout = () => {
-        dispatch(logout());
-        navigate("/login");
+    const handleLogout = async () => {
+        try {
+            await dispatch(logoutUser());
+            navigate("/login", { replace: true });
+        } catch (err) {
+            console.error("Logout failed", err);
+            navigate("/login", { replace: true });
+        }
     };
 
     const handleRemoveHold = async (id) => {

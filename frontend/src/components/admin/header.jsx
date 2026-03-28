@@ -10,9 +10,14 @@ export const Header = ({ onToggleSidebar }) => {
     const { user } = useSelector(state => state.auth);
     const unreadCount = useSelector(state => state.notifications?.unreadCount || 0);
 
-    const handleLogout = () => {
-        dispatch(logoutUser());
-        navigate("/login");
+    const handleLogout = async () => {
+        try {
+            await dispatch(logoutUser());
+            navigate("/login", { replace: true });
+        } catch (err) {
+            console.error("Logout failed", err);
+            navigate("/login", { replace: true });
+        }
     };
 
     const headerBg = isDarkMode ? "bg-[#111922] border-slate-800" : "bg-white border-slate-200";

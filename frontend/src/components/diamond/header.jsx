@@ -41,9 +41,15 @@ export const Header = () => {
       : `${isDarkMode ? "text-white" : "text-black"} hover:text-blue-400`
     }`;
 
-  const handleLogout = () => {
-    dispatch(logoutUser());
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await dispatch(logoutUser());
+      navigate("/login", { replace: true });
+    } catch (err) {
+      console.error("Logout failed", err);
+      // Still navigate as we clear state locally anyway
+      navigate("/login", { replace: true });
+    }
   };
 
   const handleInventoryNavigation = () => {
