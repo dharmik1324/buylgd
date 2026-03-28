@@ -8,7 +8,7 @@ if (typeof dns.setDefaultResultOrder === 'function') {
     dns.setDefaultResultOrder('ipv4first');
 }
 
-// Resend initialization (Primary)
+// Resend initialization (Fallback - Requires domain verification for all users)
 const resend = (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== "re_123456789") ? new Resend(process.env.RESEND_API_KEY) : null;
 
 /**
@@ -35,18 +35,19 @@ const createTransporter = (forcePort = null) => {
     let transporterConfig;
 
     if (isGmail) {
-        // Optimized Gmail Config for Cloud Environments
+        // Use direct host/port instead of 'service' for better control and reliability on Cloud/Render/Linux
         transporterConfig = {
-            service: 'gmail',
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
             auth: { user, pass },
             tls: { 
                 rejectUnauthorized: false,
                 minVersion: "TLSv1.2"
             },
-            pool: true, // Use pooling for better performance
+            pool: true,
             maxConnections: 5,
-            maxMessages: 100,
-            family: 4 // Force IPv4
+            family: 4 // Force IPv4 to avoid ENETUNREACH issues
         };
     } else {
         // Generic SMTP Config
@@ -132,6 +133,11 @@ const sendMail = async (options) => {
             
             const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
             
+            // Detection for Sandbox limitation (the "only one email works" issue)
+            if (fromEmail === "onboarding@resend.dev") {
+                 console.warn(`[EMAIL_SERVICE] ⚠️ RESEND SANDBOX MODE: Sending to ${options.to}. This will ONLY reach the account owner. Please verify your domain in Resend to support all users.`);
+            }
+
             const { data, error } = await resend.emails.send({
                 from: `"BUYLGD" <${fromEmail}>`,
                 to: options.to,

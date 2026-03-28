@@ -94,6 +94,7 @@ app.get("/api/diag/email-status", async (req, res) => {
     smtp_host: process.env.SMTP_HOST || "smtp.gmail.com",
     dns_resolved_ipv4: resolved_ip,
     resend_configured: !!(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== "re_123456789"),
+    resend_sandbox_mode: !process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL === "onboarding@resend.dev",
     connection_test: connection
   };
 
