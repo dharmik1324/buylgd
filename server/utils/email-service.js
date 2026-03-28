@@ -19,10 +19,10 @@ const createTransporter = (forcePort = null) => {
     const pass = process.env.SMTP_PASS;
     const host = process.env.SMTP_HOST || "smtp.gmail.com";
     
-    // If it's Gmail, we strongly prefer 465 (SSL) for reliability on Render
+    // If it's Gmail, we strongly prefer using the 'service' option which handles configuration automatically
     const isGmail = host.includes("gmail.com") || host.includes("googlemail.com") || (user && user.includes("gmail.com"));
     
-    // Decide the port: prioritize forcePort, then .env, then default to 465 for Gmail
+    // Decide the port: prioritize forcePort, then .env, then default to 465 (SSL) for reliability
     let port = forcePort;
     if (!port) {
         port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : (isGmail ? 465 : 587);
@@ -32,48 +32,47 @@ const createTransporter = (forcePort = null) => {
 
     if (!user || !pass) return null;
 
-    // Base config for all transports
-    const baseConfig = {
-        host,
-        port,
-        secure,
-        auth: { user, pass },
-        tls: { 
-            rejectUnauthorized: false,
-            minVersion: "TLSv1.2"
-        },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
-        family: 4, // Force IPv4 at the socket level
-    };
+    let transporterConfig;
 
-    // Use explicit config for Gmail or if host is default
-    if (isGmail || host === "smtp.gmail.com") {
-        baseConfig.host = "smtp.gmail.com";
-        baseConfig.port = port;
-        baseConfig.secure = secure;
-        
-        // Add explicit lookup that only returns IPv4
-        baseConfig.lookup = (hostname, options, callback) => {
-            dns.resolve4(hostname, (err, addresses) => {
-                if (!err && addresses && addresses.length > 0) {
-                    return callback(null, addresses[0], 4);
-                }
-                dns.lookup(hostname, { family: 4, all: false }, (err, address, family) => {
-                    callback(err, address, 4);
-                });
-            });
+    if (isGmail) {
+        // Optimized Gmail Config for Cloud Environments
+        transporterConfig = {
+            service: 'gmail',
+            auth: { user, pass },
+            tls: { 
+                rejectUnauthorized: false,
+                minVersion: "TLSv1.2"
+            },
+            pool: true, // Use pooling for better performance
+            maxConnections: 5,
+            maxMessages: 100,
+            family: 4 // Force IPv4
         };
     } else {
-        baseConfig.lookup = (hostname, options, callback) => {
+        // Generic SMTP Config
+        transporterConfig = {
+            host,
+            port,
+            secure,
+            auth: { user, pass },
+            tls: { 
+                rejectUnauthorized: false,
+                minVersion: "TLSv1.2"
+            },
+            family: 4
+        };
+    }
+
+    // Add DNS lookup fix for Render/Cloud if host is used
+    if (!isGmail) {
+        transporterConfig.lookup = (hostname, options, callback) => {
             dns.lookup(hostname, { family: 4 }, (err, address, family) => {
                 callback(err, address, family || 4);
             });
         };
     }
 
-    return nodemailer.createTransport(baseConfig);
+    return nodemailer.createTransport(transporterConfig);
 };
 
 /**
