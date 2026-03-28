@@ -78,63 +78,77 @@ const createTransporter = (forcePort = null) => {
 
 /**
  * Primary sending function with fallback mechanism
- * Priority: 1. SMTP (admin.buylgd@gmail.com) 2. Force 465 SSL Retry 3. Resend (Fallback)
+ * Priority: 1. SMTP (More reliable for global recipients if configured correctly)
+ *           2. Resend (fallback but limited to owner if not verified)
  */
 const sendMail = async (options) => {
     let smtpError = null;
 
-    // 1. Try Configured SMTP First
-    let transporter = createTransporter();
+    // 1. Try Configured SMTP First (Gmail / Other)
+    const transporter = createTransporter();
+    
     if (transporter) {
-        if (!options.from) options.from = `"BUYLGD" <${process.env.SMTP_USER}>`;
+        if (!options.from) {
+            options.from = `"BUYLGD" <${process.env.SMTP_USER}>`;
+        }
 
         try {
-            console.log(`[EMAIL_SERVICE] Attempting SMTP (${transporter.options.port}) for: ${options.to}`);
+            console.log(`[EMAIL_SERVICE] Attempting SMTP sending to: ${options.to}`);
+            
+            // For Gmail, we sometimes need to force the 'from' to match the auth user
+            if (process.env.SMTP_HOST?.includes("gmail") || process.env.SMTP_USER?.includes("gmail")) {
+                options.from = process.env.SMTP_USER;
+            }
+
             const info = await transporter.sendMail(options);
-            console.log(`[EMAIL_SERVICE] ✅ SMTP success on port ${transporter.options.port}`);
-            return { success: true, method: 'smtp', id: info.messageId, port: transporter.options.port };
+            console.log(`[EMAIL_SERVICE] ✅ SMTP success: ${info.messageId}`);
+            return { success: true, method: 'smtp', id: info.messageId };
         } catch (err) {
             smtpError = err.message;
-            console.error(`[SMTP_ERROR_PORT_${transporter.options.port}]`, smtpError);
+            console.error(`[EMAIL_SERVICE] ❌ SMTP Primary failed:`, smtpError);
 
-            // 1.5 SMART AUTO-RETRY: If it failed on 587, immediately try 465 (Most reliable for Gmail/Render)
+            // AUTO-RETRY on Port 465 if we weren't already using it
             if (transporter.options.port !== 465) {
-                console.log(`[EMAIL_SERVICE] 🔄 Auto-retrying on Port 465 (SSL)...`);
-                const retryTransporter = createTransporter(465);
+                console.log(`[EMAIL_SERVICE] 🔄 Retrying via Port 465 (SSL)...`);
                 try {
+                    const retryTransporter = createTransporter(465);
                     const info = await retryTransporter.sendMail(options);
-                    console.log(`[EMAIL_SERVICE] ✅ SMTP Success after 465 retry!`);
-                    return { success: true, method: 'smtp_retry', id: info.messageId, port: 465 };
+                    console.log(`[EMAIL_SERVICE] ✅ SMTP success on retry!`);
+                    return { success: true, method: 'smtp_retry', id: info.messageId };
                 } catch (retryErr) {
-                    console.error("[SMTP_RETRY_ERROR]", retryErr.message);
-                    smtpError = `Primary: ${smtpError} | Retry: ${retryErr.message}`;
+                    smtpError += ` | Retry Error: ${retryErr.message}`;
+                    console.error(`[EMAIL_SERVICE] ❌ SMTP Retry also failed.`);
                 }
             }
         }
     } else {
-        smtpError = "SMTP not configured";
+        smtpError = "SMTP not configured (check .env)";
     }
 
-    // 2. Try Resend Fallback
+    // 2. Fallback to Resend
+    // IMPORTANT: If domain is not verified in Resend, this will ONLY work for the account owner!
     if (resend) {
         try {
-            console.log(`[EMAIL_SERVICE] Attempting Resend fallback for: ${options.to}`);
+            console.log(`[EMAIL_SERVICE] ⚠️ Falling back to Resend for: ${options.to}`);
+            
+            const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+            
             const { data, error } = await resend.emails.send({
-                from: process.env.RESEND_FROM_EMAIL || `"BUYLGD" <onboarding@resend.dev>`,
+                from: `"BUYLGD" <${fromEmail}>`,
                 to: options.to,
                 subject: options.subject,
                 html: options.html,
             });
-            
-            if (!error && data) {
-                console.log(`[EMAIL_SERVICE] ✅ Resend success: ${options.to}`);
-                return { success: true, method: 'resend', id: data.id };
+
+            if (error) {
+                console.error("[EMAIL_SERVICE] ❌ Resend error:", error);
+                return { success: false, error: smtpError, resendError: error };
             }
-            
-            console.error("[RESEND_ERROR]", error || "Unknown error");
-            return { success: false, error: smtpError, resendError: error || "Unknown Resend error" };
+
+            console.log(`[EMAIL_SERVICE] ✅ Resend success: ${data.id}`);
+            return { success: true, method: 'resend', id: data.id };
         } catch (err) {
-            console.error("[RESEND_EXCEPTION]", err.message);
+            console.error("[EMAIL_SERVICE] ❌ Resend exception:", err.message);
             return { success: false, error: smtpError, resendError: err.message };
         }
     }
@@ -142,7 +156,7 @@ const sendMail = async (options) => {
     return { 
         success: false, 
         error: smtpError || "No email provider available",
-        hint: smtpError && (smtpError.includes("ENETUNREACH") || smtpError.includes("timeout")) ? "Network connection failed even after 465 retry. Ensure Gmail App Passwords and Render network rules are configured." : undefined
+        hint: "Ensure SMTP credentials are correct. If using Resend, verify your domain to send to all users."
     };
 };
 
