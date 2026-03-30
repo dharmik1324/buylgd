@@ -93,9 +93,15 @@ export const fetchDiamonds = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const res = await api.get(ADMIN_URL, { params });
+      const p = res.data.pagination || {};
       return {
         data: res.data.data,
-        pagination: res.data.pagination,
+        pagination: {
+          currentPage: p.currentPage || 1,
+          totalPages: p.totalPages || 1,
+          totalDiamonds: p.totalDiamonds ?? 0,
+          limit: p.limit || 12
+        },
         metadata: res.data.metadata,
         page: Number(params.page) || 1,
       };
@@ -112,13 +118,14 @@ export const fetchPublicDiamonds = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const res = await api.get("/inventory", { params });
+      const p = res.data.pagination || {};
       return {
         data: res.data.data,
         pagination: {
-          currentPage: res.data.currentPage,
-          totalPages: res.data.totalPages,
-          totalDiamonds: res.data.total,
-          limit: params.limit || 12
+          currentPage: p.currentPage ?? res.data.currentPage ?? 1,
+          totalPages: p.totalPages ?? res.data.totalPages ?? 1,
+          totalDiamonds: p.totalDiamonds ?? res.data.total ?? 0,
+          limit: p.limit ?? params.limit ?? 12
         },
         metadata: res.data.metadata,
         page: Number(params.page) || 1,

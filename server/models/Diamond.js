@@ -14,10 +14,12 @@ const DiamondSchema = new mongoose.Schema({
     Final_Price: { type: Number, index: true },
     Diamond_Image: String,
     Availability: { type: String, default: "In Stock", index: true },
+    Source: { type: String, index: true },
     onHold: { type: Boolean, default: false, index: true },
     holdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     holdExpiresAt: Date
 }, { strict: false, timestamps: true });
+
 
 DiamondSchema.index({ createdAt: -1 });
 

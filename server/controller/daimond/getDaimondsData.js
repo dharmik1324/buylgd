@@ -1,6 +1,8 @@
 const Diamond = require("../../models/Diamond");
 const CsvDiamond = require("../../models/CsvDiamond");
 const User = require("../../models/User");
+const InventoryApi = require("../../models/InventoryApi");
+
 
 const getDiamondsData = async (req, res) => {
     try {
@@ -15,7 +17,13 @@ const getDiamondsData = async (req, res) => {
             }
         }
         const markupFactor = 1 + (markup / 100);
+        
+        // Fetch ALL currently active API URLs for strict source filtering
+        const activeApis = await InventoryApi.find({ isActive: true }).select('url');
+        const activeApiUrls = activeApis.map(api => api.url);
+
         let {
+
             page = 1,
             limit = 12,
             search = "",
@@ -140,14 +148,18 @@ const getDiamondsData = async (req, res) => {
             finalMatch.source = source.toUpperCase();
         }
 
+        // Filtering for active sources only in the main collection (APIs)
+        const activeSourceMatch = { $match: { Source: { $in: activeApiUrls } } };
+
         // 1. Get Totals
         const countPipeline = [];
-        if (source.toUpperCase() === "CSV") {
+        if (source?.toUpperCase() === "CSV") {
             countPipeline.push(normalizeCsv, { $match: finalMatch });
-        } else if (source.toUpperCase() === "API") {
-            countPipeline.push(normalizeMain, { $match: finalMatch });
+        } else if (source?.toUpperCase() === "API") {
+            countPipeline.push(activeSourceMatch, normalizeMain, { $match: finalMatch });
         } else {
             countPipeline.push(
+                activeSourceMatch,
                 normalizeMain,
                 { $match: finalMatch },
                 {
@@ -161,6 +173,7 @@ const getDiamondsData = async (req, res) => {
                 }
             );
         }
+
         countPipeline.push({ $count: "total" });
 
         const countResult = (source.toUpperCase() === "CSV") 
@@ -177,18 +190,20 @@ const getDiamondsData = async (req, res) => {
         else sortStage.createdAt = -1;
 
         const dataPipeline = [];
-        if (source.toUpperCase() === "CSV") {
+        if (source?.toUpperCase() === "CSV") {
             dataPipeline.push(
                 normalizeCsv,
                 { $match: finalMatch }
             );
-        } else if (source.toUpperCase() === "API") {
+        } else if (source?.toUpperCase() === "API") {
             dataPipeline.push(
+                activeSourceMatch,
                 normalizeMain,
                 { $match: finalMatch }
             );
         } else {
             dataPipeline.push(
+                activeSourceMatch,
                 normalizeMain,
                 { $match: finalMatch },
                 {
@@ -202,6 +217,7 @@ const getDiamondsData = async (req, res) => {
                 }
             );
         }
+
         dataPipeline.push(
             { $sort: sortStage },
             { $skip: skip },
@@ -217,7 +233,10 @@ const getDiamondsData = async (req, res) => {
         if (page === 1) {
             try {
                 // Get unified distinct values using aggregation and $unionWith
+                const activeSourceMatch = { $match: { Source: { $in: activeApiUrls } } };
+                
                 const metaPipeline = (field) => [
+                    activeSourceMatch,
                     { $project: { [field]: { $ifNull: [`$${field}`, `$${field.toUpperCase()}`] } } },
                     {
                         $unionWith: {
@@ -233,6 +252,7 @@ const getDiamondsData = async (req, res) => {
                     Diamond.aggregate(metaPipeline("Color")),
                     Diamond.aggregate(metaPipeline("Clarity")),
                     Diamond.aggregate([
+                        activeSourceMatch,
                         normalizeMain,
                         {
                             $unionWith: {
@@ -240,6 +260,7 @@ const getDiamondsData = async (req, res) => {
                                 pipeline: [normalizeCsv]
                             }
                         },
+
                         {
                             $group: {
                                 _id: null,
@@ -271,9 +292,11 @@ const getDiamondsData = async (req, res) => {
                     // Calculate stats from both collections separately and merge to handle empty collections correctly
                     const [mainStats, csvStats] = await Promise.all([
                         Diamond.aggregate([
+                            activeSourceMatch,
                             normalizeMain,
                             {
                                 $group: {
+
                                     _id: "$Shape",
                                     count: { $sum: 1 },
                                     totalValue: { $sum: "$Final_Price" }

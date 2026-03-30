@@ -7,6 +7,8 @@ import themeReducer from "./themeSlice";
 import notificationReducer from "./notificationSlice";
 import supportReducer from "./supportSlice";
 import wishlistReducer from "./wishlistSlice";
+import inventoryApiReducer from "./inventoryApiSlice";
+
 
 export const store = configureStore({
     reducer: {
@@ -18,5 +20,7 @@ export const store = configureStore({
         notifications: notificationReducer,
         support: supportReducer,
         wishlist: wishlistReducer,
+        inventoryApi: inventoryApiReducer,
     },
+
 });

@@ -17,8 +17,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     Search, Plus, MoreVertical,
     ExternalLink, Trash2, Edit3, Filter, X, ChevronDown, Zap, Package, CheckCircle2, Clock, BarChart3,
-    RefreshCw, Upload, Eye, Gem, Award, TrendingUp
+    RefreshCw, Upload, Eye, Gem, Award, TrendingUp, Settings
 } from "lucide-react";
+import { InventoryApiModal } from "../../components/admin/InventoryApiModal";
 
 export const Diamond = () => {
     const dispatch = useDispatch();
@@ -75,6 +76,8 @@ export const Diamond = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [viewDiamond, setViewDiamond] = useState(null);
     const [clearOpen, setClearOpen] = useState(false);
+    const [apiSettingsOpen, setApiSettingsOpen] = useState(false);
+
 
     const stats = useMemo(() => [
         { label: "Total Inventory", value: totalDiamonds, icon: <Package size={18} />, color: "text-blue-500", bg: "bg-blue-500/5" },
@@ -190,7 +193,12 @@ export const Diamond = () => {
         <div className={`flex-1 min-h-screen p-8 font-sans transition-colors duration-300 ${pageBg}`}>
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                 <div>
-                    <h1 className={`text-3xl sm:text-4xl font-normal tracking-tight ${headText}`}>Asset Repository</h1>
+                    <h1 className={`text-3xl sm:text-4xl font-normal tracking-tight flex items-center gap-3 ${headText}`}>
+                        Asset Repository
+                        <span className="text-sm px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 font-bold border border-blue-500/20">
+                            {totalDiamonds?.toLocaleString() || 0}
+                        </span>
+                    </h1>
                     <p className="text-sm text-slate-500 mt-2 uppercase tracking-widest font-normal">Vault Transaction Monitoring</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
@@ -235,6 +243,14 @@ export const Diamond = () => {
                         <span>Sync HTTP</span>
                     </button>
                     <button
+                        onClick={() => setApiSettingsOpen(true)}
+                        className={`flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-normal uppercase tracking-widest transition-all border border-slate-500/20 text-slate-400 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'}`}
+                    >
+                        <Settings size={16} />
+                        <span>API Settings</span>
+                    </button>
+                    <button
+
                         onClick={() => {
                             setFilters(prev => ({ ...prev, source: prev.source === 'CSV' ? '' : 'CSV' }));
                             setPage(1);
@@ -473,7 +489,13 @@ export const Diamond = () => {
                 onClose={() => setClearOpen(false)}
                 isDarkMode={isDarkMode}
             />
+
+            <InventoryApiModal
+                open={apiSettingsOpen}
+                onClose={() => setApiSettingsOpen(false)}
+            />
         </div>
+
     );
 };
 

@@ -21,6 +21,8 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const supportRoutes = require("./routes/support/support-routes");
 const externalRoutes = require("./routes/external/external-routes");
 const inventoryRoutes = require("./routes/public/inventory-routes");
+const inventoryApiRoutes = require("./routes/inventoryApiRoute");
+
 
 const app = express();
 const server = http.createServer(app);
@@ -93,8 +95,6 @@ app.get("/api/diag/email-status", async (req, res) => {
     smtp_user: user ? `${user.substring(0, 3)}...` : "not set",
     smtp_host: process.env.SMTP_HOST || "smtp.gmail.com",
     dns_resolved_ipv4: resolved_ip,
-    resend_configured: !!(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== "re_123456789"),
-    resend_sandbox_mode: !process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM_EMAIL === "onboarding@resend.dev",
     connection_test: connection
   };
 
@@ -118,7 +118,9 @@ const csvDiamondRoutes = require("./routes/admin/csv-diamond-routes");
 
 // Protected Admin Routes
 app.use("/api/admin/csv-diamonds", csvDiamondRoutes);
+app.use("/api/admin/inventory-api", authMiddleware, inventoryApiRoutes);
 app.use("/api/contact", authMiddleware, contactRoutes);
+
 app.use("/api/admin/reports", authMiddleware, reportRoutes);
 app.use("/api/admin/store-diamonds", authMiddleware, storeDaimonds);
 app.use("/api/admin/diamonds", authMiddleware, diamondRoutes);
@@ -191,9 +193,27 @@ app.use("/api", externalRoutes);
       await existing.save();
       console.log(`User ${adminEmail} promoted to admin.`);
     }
-  } catch (err) {
-    console.error("Error ensuring default admin:", err.message || err);
-  }
+    } catch (err) {
+      console.error("Error ensuring default admin:", err.message || err);
+    }
+
+    // Ensure default Inventory API exists
+    try {
+        const InventoryApi = require("./models/InventoryApi");
+        const apisCount = await InventoryApi.countDocuments();
+        if (apisCount === 0) {
+            await InventoryApi.create({
+                name: "Akshar API",
+                url: "https://akshar.kodllin.com/apis/api/getStockN?auth_key=zvkwybd3mqru",
+                method: "POST",
+                isActive: true
+            });
+            console.log("Default Akshar API created.");
+        }
+    } catch (err) {
+        console.error("Error ensuring default API:", err.message || err);
+    }
+
 
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

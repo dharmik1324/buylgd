@@ -1,5 +1,4 @@
 const nodemailer = require("nodemailer");
-const { Resend } = require("resend");
 const dns = require('dns');
 require("dotenv").config();
 
@@ -7,9 +6,6 @@ require("dotenv").config();
 if (typeof dns.setDefaultResultOrder === 'function') {
     dns.setDefaultResultOrder('ipv4first');
 }
-
-// Resend initialization (Fallback - Requires domain verification for all users)
-const resend = (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== "re_123456789") ? new Resend(process.env.RESEND_API_KEY) : null;
 
 /**
  * Creates a configured nodemailer transporter for Gmail/SMTP
@@ -19,10 +15,8 @@ const createTransporter = (forcePort = null) => {
     const pass = process.env.SMTP_PASS;
     const host = process.env.SMTP_HOST || "smtp.gmail.com";
     
-    // If it's Gmail, we strongly prefer using the 'service' option which handles configuration automatically
     const isGmail = host.includes("gmail.com") || host.includes("googlemail.com") || (user && user.includes("gmail.com"));
     
-    // Decide the port: prioritize forcePort, then .env, then default to 465 (SSL) for reliability
     let port = forcePort;
     if (!port) {
         port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : (isGmail ? 465 : 587);
@@ -35,7 +29,6 @@ const createTransporter = (forcePort = null) => {
     let transporterConfig;
 
     if (isGmail) {
-        // Use direct host/port instead of 'service' for better control and reliability on Cloud/Render/Linux
         transporterConfig = {
             host: "smtp.gmail.com",
             port: 465,
@@ -47,10 +40,9 @@ const createTransporter = (forcePort = null) => {
             },
             pool: true,
             maxConnections: 5,
-            family: 4 // Force IPv4 to avoid ENETUNREACH issues
+            family: 4
         };
     } else {
-        // Generic SMTP Config
         transporterConfig = {
             host,
             port,
@@ -64,7 +56,6 @@ const createTransporter = (forcePort = null) => {
         };
     }
 
-    // Add DNS lookup fix for Render/Cloud if host is used
     if (!isGmail) {
         transporterConfig.lookup = (hostname, options, callback) => {
             dns.lookup(hostname, { family: 4 }, (err, address, family) => {
@@ -77,14 +68,10 @@ const createTransporter = (forcePort = null) => {
 };
 
 /**
- * Primary sending function with fallback mechanism
- * Priority: 1. SMTP (More reliable for global recipients if configured correctly)
- *           2. Resend (fallback but limited to owner if not verified)
+ * Primary sending function using SMTP (Gmail)
  */
 const sendMail = async (options) => {
     let smtpError = null;
-
-    // 1. Try Configured SMTP First (Gmail / Other)
     const transporter = createTransporter();
     
     if (transporter) {
@@ -95,7 +82,6 @@ const sendMail = async (options) => {
         try {
             console.log(`[EMAIL_SERVICE] Attempting SMTP sending to: ${options.to}`);
             
-            // For Gmail, we sometimes need to force the 'from' to match the auth user
             if (process.env.SMTP_HOST?.includes("gmail") || process.env.SMTP_USER?.includes("gmail")) {
                 options.from = process.env.SMTP_USER;
             }
@@ -107,7 +93,6 @@ const sendMail = async (options) => {
             smtpError = err.message;
             console.error(`[EMAIL_SERVICE] ❌ SMTP Primary failed:`, smtpError);
 
-            // AUTO-RETRY on Port 465 if we weren't already using it
             if (transporter.options.port !== 465) {
                 console.log(`[EMAIL_SERVICE] 🔄 Retrying via Port 465 (SSL)...`);
                 try {
@@ -125,52 +110,19 @@ const sendMail = async (options) => {
         smtpError = "SMTP not configured (check .env)";
     }
 
-    // 2. Fallback to Resend
-    // IMPORTANT: If domain is not verified in Resend, this will ONLY work for the account owner!
-    if (resend) {
-        try {
-            console.log(`[EMAIL_SERVICE] ⚠️ Falling back to Resend for: ${options.to}`);
-            
-            const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-            
-            // Detection for Sandbox limitation (the "only one email works" issue)
-            if (fromEmail === "onboarding@resend.dev") {
-                 console.warn(`[EMAIL_SERVICE] ⚠️ RESEND SANDBOX MODE: Sending to ${options.to}. This will ONLY reach the account owner. Please verify your domain in Resend to support all users.`);
-            }
-
-            const { data, error } = await resend.emails.send({
-                from: `"BUYLGD" <${fromEmail}>`,
-                to: options.to,
-                subject: options.subject,
-                html: options.html,
-            });
-
-            if (error) {
-                console.error("[EMAIL_SERVICE] ❌ Resend error:", error);
-                return { success: false, error: smtpError, resendError: error };
-            }
-
-            console.log(`[EMAIL_SERVICE] ✅ Resend success: ${data.id}`);
-            return { success: true, method: 'resend', id: data.id };
-        } catch (err) {
-            console.error("[EMAIL_SERVICE] ❌ Resend exception:", err.message);
-            return { success: false, error: smtpError, resendError: err.message };
-        }
-    }
-
     return { 
         success: false, 
         error: smtpError || "No email provider available",
-        hint: "Ensure SMTP credentials are correct. If using Resend, verify your domain to send to all users."
+        hint: "Ensure SMTP credentials (SMTP_USER/SMTP_PASS) are correct in .env."
     };
 };
 
 /**
  * Premium Email Template Wrapper
  */
-const getEmailTemplate = ({ title, body, badge, buttonText, buttonUrl, footerNote }) => {
-    const primaryColor = "#1e40af"; // Deep blue
-    const accentColor = "#eff6ff"; // Light blue background
+const getEmailTemplate = (data) => {
+    const { title, body, badge, buttonText, buttonUrl, footerNote } = data;
+    const primaryColor = "#1e40af";
     const badgeColor = badge === "ACCOUNT APPROVED" ? "#dcfce7" : "#fef9c3";
     const badgeTextColor = badge === "ACCOUNT APPROVED" ? "#166534" : "#854d0e";
 
@@ -195,21 +147,13 @@ const getEmailTemplate = ({ title, body, badge, buttonText, buttonUrl, footerNot
     </head>
     <body>
         <div class="container">
-            <div class="header">
-                <h1>BUYLGD</h1>
-            </div>
+            <div class="header"><h1>BUYLGD</h1></div>
             <div class="content">
                 <div class="title">${title}</div>
-                ${badge ? `<div class="badge">${badge}</div>` : ''}
-                <div class="body-text">
-                    ${body}
-                </div>
-                ${buttonText ? `
-                <div class="button-wrapper">
-                    <a href="${buttonUrl}" class="button">${buttonText}</a>
-                </div>
-                ` : ''}
-                ${footerNote ? `<p style="font-size: 14px; color: #9ca3af; margin-top: 40px; border-top: 1px solid #f3f4f6; pt: 20px;">${footerNote}</p>` : ''}
+                ${badge ? '<div class="badge">' + badge + '</div>' : ''}
+                <div class="body-text">${body}</div>
+                ${buttonText ? '<div class="button-wrapper"><a href="' + buttonUrl + '" class="button">' + buttonText + '</a></div>' : ''}
+                ${footerNote ? '<p style="font-size: 14px; color: #9ca3af; margin-top: 40px; border-top: 1px solid #f3f4f6; pt: 20px;">' + footerNote + '</p>' : ''}
             </div>
             <div class="footer">
                 <p><strong>BUYLGD Luxury Diamonds</strong></p>
@@ -227,117 +171,85 @@ const getEmailTemplate = ({ title, body, badge, buttonText, buttonUrl, footerNot
  */
 
 const sendWelcomeEmail = async (email, name) => {
-    const mailOptions = {
+    return await sendMail({
         to: email,
         subject: "Welcome to BUYLGD - Registration Received",
         html: getEmailTemplate({
-            title: `Hello ${name},`,
-            body: `
-                <p>We are pleased to inform you that your registration with <strong>BUYLGD Diamond Inventory</strong> has been received by our administrators.</p>
-                <p>Our team will review your application within 24-48 business hours.</p>
-                <p>Once approved, you will have full access to our premium diamond catalog and advanced search features.</p>
-            `,
+            title: "Hello " + name + ",",
+            body: "<p>We are pleased to inform you that your registration with <strong>BUYLGD Diamond Inventory</strong> has been received by our administrators.</p><p>Our team will review your application within 24-48 business hours.</p><p>Once approved, you will have full access to our premium diamond catalog and advanced search features.</p>",
             badge: "REGISTRATION RECEIVED",
             footerNote: "If you have any trouble logging in, please try resetting your password or contact our 24/7 support team."
         })
-    };
-    return await sendMail(mailOptions);
+    });
 };
 
 const sendApprovalEmail = async (userEmail, userName) => {
-    const mailOptions = {
+    return await sendMail({
         to: userEmail,
         subject: "✅ Your BUYLGD account has been approved!",
         html: getEmailTemplate({
-            title: `Hello ${userName},`,
+            title: "Hello " + userName + ",",
             badge: "ACCOUNT APPROVED",
-            body: `
-                <p>We are pleased to inform you that your registration with <strong>BUYLGD Diamond Inventory</strong> has been approved by our administrators.</p>
-                <p>You now have full access to our premium diamond catalog and advanced search features. Your journey into the world of exquisite diamonds starts here.</p>
-            `,
+            body: "<p>We are pleased to inform you that your registration with <strong>BUYLGD Diamond Inventory</strong> has been approved by our administrators.</p><p>You now have full access to our premium diamond catalog and advanced search features. Your journey into the world of exquisite diamonds starts here.</p>",
             buttonText: "Access My Account",
-            buttonUrl: `${process.env.APP_URL || 'https://app.buylgd.in'}/login`,
+            buttonUrl: (process.env.APP_URL || "https://app.buylgd.in") + "/login",
             footerNote: "If you have any trouble logging in, please try resetting your password or contact our 24/7 support team."
         })
-    };
-    return await sendMail(mailOptions);
+    });
 };
 
 const sendAdminNotificationEmail = async (userData) => {
     const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || process.env.SMTP_USER;
-    const mailOptions = {
+    return await sendMail({
         to: adminEmail,
         subject: "Alert: New User Registration",
         html: getEmailTemplate({
             title: "New Registration",
-            body: `
-                <p>A new user is awaiting approval:</p>
-                <p><strong>Name:</strong> ${userData.name}</p>
-                <p><strong>Email:</strong> ${userData.email}</p>
-                <p><strong>Company:</strong> ${userData.companyName}</p>
-                <p><strong>Location:</strong> ${userData.city}, ${userData.country}</p>
-            `,
+            body: "<p>A new user is awaiting approval:</p><p><strong>Name:</strong> " + userData.name + "</p><p><strong>Email:</strong> " + userData.email + "</p><p><strong>Company:</strong> " + userData.companyName + "</p><p><strong>Location:</strong> " + userData.city + ", " + userData.country + "</p>",
             badge: "ADMIN ACTION REQUIRED",
             buttonText: "View User in Dashboard",
-            buttonUrl: `${process.env.APP_URL || 'https://app.buylgd.in'}/admin/users`
+            buttonUrl: (process.env.APP_URL || "https://app.buylgd.in") + "/admin/users"
         })
-    };
-    return await sendMail(mailOptions);
+    });
 };
 
 const sendForgotPasswordEmail = async (userEmail, userName, otp) => {
-    const mailOptions = {
+    return await sendMail({
         to: userEmail,
         subject: "Password Reset Request - BUYLGD",
         html: getEmailTemplate({
-            title: `Hello ${userName},`,
-            body: `
-                <p>We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed:</p>
-                <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; text-align: center; padding: 20px; background: #f3f4f6; border-radius: 8px; margin: 20px 0; color: #1e40af;">
-                    ${otp}
-                </div>
-                <p>If you did not request this, please ignore this email or contact support if you have concerns.</p>
-            `,
+            title: "Hello " + userName + ",",
+            body: "<p>We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed:</p><div style='font-size: 32px; font-weight: bold; letter-spacing: 5px; text-align: center; padding: 20px; background: #f3f4f6; border-radius: 8px; margin: 20px 0; color: #1e40af;'>" + otp + "</div><p>If you did not request this, please ignore this email or contact support if you have concerns.</p>",
             badge: "PASSWORD RESET",
         })
-    };
-    return await sendMail(mailOptions);
+    });
 };
 
 const sendPasswordResetSuccessEmail = async (userEmail, userName) => {
-    const mailOptions = {
+    return await sendMail({
         to: userEmail,
         subject: "Password Changed - BUYLGD",
         html: getEmailTemplate({
-            title: `Success!`,
-            body: `<p>Hello ${userName}, your password has been changed successfully. You can now log in with your new credentials.</p>`,
+            title: "Success!",
+            body: "<p>Hello " + userName + ", your password has been changed successfully. You can now log in with your new credentials.</p>",
             badge: "SECURITY UPDATE",
             buttonText: "Login Now",
-            buttonUrl: `${process.env.APP_URL || 'https://app.buylgd.in'}/login`
+            buttonUrl: (process.env.APP_URL || "https://app.buylgd.in") + "/login"
         })
-    };
-    return await sendMail(mailOptions);
+    });
 };
 
 const sendContactEmail = async (contactData) => {
     const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || process.env.SMTP_USER;
-    const mailOptions = {
+    return await sendMail({
         to: adminEmail,
-        subject: `Contact inquiry: ${contactData.subject}`,
+        subject: "Contact inquiry: " + contactData.subject,
         html: getEmailTemplate({
             title: "New Inquiry Received",
-            body: `
-                <p><strong>From:</strong> ${contactData.fullName} (${contactData.email})</p>
-                <p><strong>Subject:</strong> ${contactData.subject}</p>
-                <p><strong>Message:</strong></p>
-                <div style="padding: 15px; background: #f9fafb; border-left: 4px solid #1e40af; font-style: italic;">
-                    ${contactData.message}
-                </div>
-            `,
+            body: "<p><strong>From:</strong> " + contactData.fullName + " (" + contactData.email + ")</p><p><strong>Subject:</strong> " + contactData.subject + "</p><p><strong>Message:</strong></p><div style='padding: 15px; background: #f9fafb; border-left: 4px solid #1e40af; font-style: italic;'>" + contactData.message + "</div>",
             badge: "CUSTOMER SUPPORT"
         })
-    };
-    return await sendMail(mailOptions);
+    });
 };
 
 const verifySMTP = async () => {
@@ -349,16 +261,14 @@ const verifySMTP = async () => {
             success: true, 
             message: "SMTP connection verified!",
             host: transporter.options.host || "gmail (service)",
-            port: transporter.options.port || (transporter.options.service === 'gmail' ? 'default' : 'unknown'),
-            resendActive: !!resend
+            port: transporter.options.port || "unknown"
         };
     } catch (err) {
         return { 
             success: false, 
-            message: `SMTP Error: ${err.message}`, 
+            message: "SMTP Error: " + err.message, 
             host: transporter.options.host || "gmail (service)",
-            port: transporter.options.port || (transporter.options.service === 'gmail' ? 'default' : 'unknown'),
-            resendActive: !!resend
+            port: transporter.options.port || "unknown"
         };
     }
 };
