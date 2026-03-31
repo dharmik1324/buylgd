@@ -21,7 +21,7 @@ export const createInventoryApi = createAsyncThunk(
     async (formData, { rejectWithValue }) => {
         try {
             const res = await api.post(API_URL, formData);
-            toast.success("API configuration added");
+            toast.success(res.data.message || "API added and sync started");
             return res.data.data;
         } catch (err) {
             toast.error(err.response?.data?.message || "Failed to add API");
@@ -35,7 +35,7 @@ export const updateInventoryApi = createAsyncThunk(
     async ({ id, formData }, { rejectWithValue }) => {
         try {
             const res = await api.put(`${API_URL}/${id}`, formData);
-            toast.success("API configuration updated");
+            toast.success(res.data.message || "API updated and sync started");
             return res.data.data;
         } catch (err) {
             toast.error(err.response?.data?.message || "Failed to update API");

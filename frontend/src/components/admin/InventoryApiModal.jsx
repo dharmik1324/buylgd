@@ -17,6 +17,7 @@ export const InventoryApiModal = ({ open, onClose }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
+        name: "",
         url: "",
         method: "GET",
         body: "",
@@ -43,16 +44,23 @@ export const InventoryApiModal = ({ open, onClose }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const { fetchDiamonds } = await import("../../store/diamondSlice");
+        
         if (editingId) {
             await dispatch(updateInventoryApi({ id: editingId, formData }));
         } else {
             await dispatch(createInventoryApi(formData));
         }
+        
+        // Refresh the diamonds list in the background
+        dispatch(fetchDiamonds({ page: 1, limit: 12 }));
+        
         resetForm();
     };
 
     const handleEdit = (api) => {
         setFormData({
+            name: api.name || "",
             url: api.url,
             method: api.method,
             body: api.body || "",
@@ -71,7 +79,7 @@ export const InventoryApiModal = ({ open, onClose }) => {
     };
 
     const resetForm = () => {
-        setFormData({ url: "", method: "GET", body: "", headers: "", isActive: true });
+        setFormData({ name: "", url: "", method: "GET", body: "", headers: "", isActive: true });
         setIsAdding(false);
         setEditingId(null);
     };
@@ -140,11 +148,12 @@ export const InventoryApiModal = ({ open, onClose }) => {
                                                     </div>
                                                     <div className="flex-1 min-w-0 mr-4">
                                                         <div className="flex items-center gap-2 overflow-hidden">
-                                                            <p className={`text-sm font-medium truncate ${textMain}`}>{api.url}</p>
+                                                            <p className={`text-sm font-medium truncate ${textMain}`}>{api.name || "Unnamed API"}</p>
                                                             <span className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full border ${api.method === 'POST' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
                                                                 {api.method}
                                                             </span>
                                                         </div>
+                                                        <p className="text-[10px] text-slate-500 truncate">{api.url}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-1 flex-shrink-0">
@@ -172,6 +181,18 @@ export const InventoryApiModal = ({ open, onClose }) => {
                         ) : (
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Display Name</label>
+                                        <input 
+                                            type="text"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            required
+                                            placeholder="e.g., Dharmatech API"
+                                            className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-blue-500 transition-all ${inputBg}`}
+                                        />
+                                    </div>
                                     <div>
                                         <label className="block text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Endpoint URL</label>
                                         <input 
