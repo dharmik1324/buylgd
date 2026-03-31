@@ -16,6 +16,7 @@ import oldMinerImg from "../../assets/shapes/old_miner.png";
 import europeanCutImg from "../../assets/shapes/european_cut.png";
 import roseImg from "../../assets/shapes/rose.png";
 import triangularImg from "../../assets/shapes/triangular.png";
+import cushionModifiedImg from "../../assets/shapes/cushion_modified.png";
 
 
 const Detail = ({ label, value, isDarkMode }) => (
@@ -78,7 +79,7 @@ export const AppDiamond = () => {
     filters.cuts.length > 0;
 
   const metadata = {
-    shapes: Array.from(new Set(["ROUND", "PRINCESS", ...(serverMetadata?.shapes || ["ROUND", "PRINCESS", "EMERALD", "PEAR", "OVAL", "RADIANT", "MARQUISE", "CUSHION", "HEART", "ASSCHER", "SQUARE RADIANT", "OLD MINER", "EUROPEAN CUT", "ROSE", "TRIANGULAR"])])),
+    shapes: Array.from(new Set(["ROUND", "PRINCESS", ...(serverMetadata?.shapes || ["ROUND", "PRINCESS", "EMERALD", "PEAR", "OVAL", "RADIANT", "MARQUISE", "CUSHION", "HEART", "ASSCHER", "SQUARE RADIANT", "OLD MINER", "EUROPEAN CUT", "ROSE", "TRIANGULAR", "CUSHION MODIFIED"])])),
     colors: serverMetadata?.colors?.length ? serverMetadata.colors : ["D", "E", "F", "G", "H", "I", "J"],
     clarities: serverMetadata?.clarities?.length ? serverMetadata.clarities : ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1"],
     cuts: ["ID", "EX", "VG"],
@@ -126,7 +127,11 @@ export const AppDiamond = () => {
       "old miner": oldMinerImg,
       "european cut": europeanCutImg,
       "rose": roseImg,
-      "triangular": triangularImg
+      "triangular": triangularImg,
+      "cushion modified": cushionModifiedImg,
+      "cushion mod": cushionModifiedImg,
+      "cush mod": cushionModifiedImg,
+      "cushion mod.": cushionModifiedImg
     };
     return map[s] || "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/2.png";
   };
@@ -189,7 +194,7 @@ export const AppDiamond = () => {
           </motion.h1>
 
           <div className="flex justify-center mt-6 sm:mt-8 w-full overflow-hidden">
-            <div className="flex flex-nowrap gap-2 sm:gap-4 w-full justify-start sm:justify-center overflow-x-auto scrollbar-hide items-center">
+            <div className="flex flex-nowrap gap-2 pl-4 sm:gap-4 w-full justify-start sm:justify-center overflow-x-auto scrollbar-hide items-center">
               {uniqueShapes.map((shape) => {
                 const selected = filters.shapes?.some(s => s.toLowerCase() === shape.toLowerCase());
                 const imageUrl = getImageUrl(shape);

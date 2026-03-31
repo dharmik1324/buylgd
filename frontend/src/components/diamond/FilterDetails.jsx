@@ -8,6 +8,7 @@ import oldMinerImg from "../../assets/shapes/old_miner.png";
 import europeanCutImg from "../../assets/shapes/european_cut.png";
 import roseImg from "../../assets/shapes/rose.png";
 import triangularImg from "../../assets/shapes/triangular.png";
+import cushionModifiedImg from "../../assets/shapes/cushion_modified.png";
 import { Search, Loader2, Mic } from "lucide-react";
 import api from "../../services/api";
 import { setCurrentFilters } from "../../store/diamondSlice";
@@ -23,7 +24,7 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
     const debounceTimeoutRef = useRef(null);
 
     const {
-        shapes = ["Round", "Princess", "Emerald", "Pear", "Oval", "Radiant", "Marquise", "Cushion", "Heart", "Asscher", "Square Radiant", "Old Miner", "European Cut", "Rose", "Triangular"],
+        shapes = ["Round", "Princess", "Emerald", "Pear", "Oval", "Radiant", "Marquise", "Cushion", "Heart", "Asscher", "Square Radiant", "Old Miner", "European Cut", "Rose", "Triangular", "Cushion Modified"],
         colors = ["D", "E", "F", "G", "H", "I", "J"],
         clarities = ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1"],
         cuts = ["ID", "EX", "VG"],
@@ -352,7 +353,8 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
                                 "old miner": oldMinerImg,
                                 "european cut": europeanCutImg,
                                 "rose": roseImg,
-                                "triangular": triangularImg
+                                "triangular": triangularImg,
+                                "cushion modified": cushionModifiedImg
                             }[shape.toLowerCase().replace('.', '').trim()] || "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/2.png";
 
                             return (
