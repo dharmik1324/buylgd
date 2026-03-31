@@ -43,6 +43,19 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
         default: {}
     },
+    allowedApis: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "InventoryApi"
+    }],
+    apiFilterMode: {
+        type: String,
+        enum: ["all", "specific"],
+        default: "all"
+    },
+    apiFilters: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    },
     sessions: [{
         sessionId: String,
         userAgent: String,

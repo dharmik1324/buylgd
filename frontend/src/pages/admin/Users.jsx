@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import { fetchUsers, deleteUser, updateUser, createUser, approveUser, toggleApiAccess, clearSessions } from "../../store/userSlice";
 import { RxCross2 } from "react-icons/rx";
 import Select from "react-select";
+import { fetchInventoryApis } from "../../store/inventoryApiSlice";
 import { getCountryOptions, getStateOptions, getCityOptions } from "../../utils/locationHelper";
 
 const adminSelectStyles = (isDarkMode) => ({
@@ -589,6 +590,7 @@ const ProfileRow = ({ label, value }) => {
 
 const AddUserModal = ({ onClose }) => {
     const dispatch = useDispatch();
+    const { apis } = useSelector((state) => state.inventoryApi);
     const [formData, setFormData] = useState({
         name: "",
         companyName: "",
@@ -600,12 +602,25 @@ const AddUserModal = ({ onClose }) => {
         city: "",
         role: "user",
         image: "",
-        isApproved: true
+        isApproved: true,
+        allowedApis: [],
+        apiFilterMode: "all",
+        apiFilters: {}
     });
     const [countryCode, setCountryCode] = useState("");
     const [stateCode, setStateCode] = useState("");
 
     const isDarkMode = useSelector((state) => state.theme?.isDarkMode ?? true);
+    
+    useEffect(() => {
+        dispatch(fetchInventoryApis());
+    }, [dispatch]);
+
+    const apiOptions = (apis || []).map(api => ({
+        value: api._id,
+        label: api.url
+    }));
+
     const cardBg = isDarkMode ? "bg-[#111922] border-slate-800" : "bg-white border-slate-200";
     const headText = isDarkMode ? "text-white" : "text-slate-900";
     const inputCls = isDarkMode ? "bg-[#0B1219] border-slate-800 text-white placeholder:text-slate-700" : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400";
@@ -718,7 +733,7 @@ const AddUserModal = ({ onClose }) => {
                                 options={stateOptions}
                                 styles={styles}
                                 placeholder="State"
-                                value={stateOptions.find(s => s.value === stateCode) || null}
+                                value={stateOptions.find(s => s.name === formData.state) || null}
                                 onChange={handleStateChange}
                                 isSearchable
                                 isClearable
@@ -747,6 +762,25 @@ const AddUserModal = ({ onClose }) => {
                         </select>
                     </div>
 
+                    <div className="space-y-4 p-4 bg-blue-600/5 border border-blue-500/10 rounded-2xl">
+                         <div className="flex items-center justify-between">
+                            <div>
+                                <p className={`text-[10px] font-normal ${headText} uppercase tracking-widest`}>Authorized APIs</p>
+                                <p className="text-[9px] text-slate-500 uppercase mt-1">Select data sources for this user</p>
+                            </div>
+                            <div className="flex-1 ml-4">
+                                <Select
+                                    isMulti
+                                    options={apiOptions}
+                                    styles={styles}
+                                    value={apiOptions.filter(opt => formData.allowedApis?.includes(opt.value))}
+                                    onChange={(selected) => setFormData({ ...formData, allowedApis: selected.map(s => s.value) })}
+                                    placeholder="Select APIs..."
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     <div className={`flex items-center justify-between p-4 ${isDarkMode ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-200'} rounded-2xl border`}>
                         <div>
                             <p className={`text-[10px] font-normal ${headText} uppercase tracking-widest`}>Instant Approval</p>
@@ -771,12 +805,29 @@ const AddUserModal = ({ onClose }) => {
 
 const EditUserModal = ({ user, onClose }) => {
     const dispatch = useDispatch();
-    const [formData, setFormData] = useState({ ...user, password: "" });
+    const { apis } = useSelector((state) => state.inventoryApi);
+    const [formData, setFormData] = useState({ 
+        ...user, 
+        password: "",
+        allowedApis: user.allowedApis || [],
+        apiFilterMode: user.apiFilterMode || "all",
+        apiFilters: user.apiFilters || {}
+    });
 
     const [countryCode, setCountryCode] = useState("");
     const [stateCode, setStateCode] = useState("");
 
     const isDarkMode = useSelector((state) => state.theme?.isDarkMode ?? true);
+    
+    useEffect(() => {
+        dispatch(fetchInventoryApis());
+    }, [dispatch]);
+
+    const apiOptions = (apis || []).map(api => ({
+        value: api._id,
+        label: api.url
+    }));
+
     const cardBg = isDarkMode ? "bg-[#111922] border-slate-800" : "bg-white border-slate-200";
     const headText = isDarkMode ? "text-white" : "text-slate-900";
     const inputCls = isDarkMode ? "bg-[#0B1219] border-slate-800 text-white placeholder:text-slate-700" : "bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400";
@@ -839,7 +890,7 @@ const EditUserModal = ({ user, onClose }) => {
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={`${cardBg} border w-full max-w-[500px] p-6 sm:p-8 rounded-3xl relative shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar`}>
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={`${cardBg} border w-full max-w-[650px] p-6 sm:p-8 rounded-3xl relative shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar`}>
                 <button onClick={onClose} className={`absolute top-6 right-6 text-slate-500 hover:${headText} transition-colors`}><RxCross2 size={24} /></button>
                 <div className="mb-8">
                     <h2 className={`text-xl sm:text-2xl font-normal ${headText} uppercase tracking-tighter`}>Modify Credentials</h2>
@@ -1010,24 +1061,140 @@ const EditUserModal = ({ user, onClose }) => {
                         </div>
 
                         {formData.isApiOpen && (
-                            <div className="pt-2 border-t border-blue-500/20">
-                                <label className={`text-[10px] font-normal ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest mb-2 block`}>
-                                    API Price Markup/Discount
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="range"
-                                        min="-50"
-                                        max="50"
-                                        value={formData.apiPriceAdjustment || 0}
-                                        onChange={(e) => setFormData({ ...formData, apiPriceAdjustment: Number(e.target.value) })}
-                                        className="w-full accent-blue-500 h-1.5 bg-blue-900 rounded-lg appearance-none cursor-pointer"
+                            <div className="space-y-4 pt-4 border-t border-blue-500/10">
+                                <div className="space-y-1.5">
+                                    <label className={`text-[10px] font-normal ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest block`}>
+                                        Allowed APIs (Data Sources)
+                                    </label>
+                                    <Select
+                                        isMulti
+                                        options={apiOptions}
+                                        styles={styles}
+                                        value={apiOptions.filter(opt => formData.allowedApis?.includes(opt.value))}
+                                        onChange={(selected) => setFormData({ ...formData, allowedApis: selected.map(s => s.value) })}
+                                        placeholder="Select authorized APIs..."
                                     />
-                                    <span className={`text-xs font-mono font-bold w-12 text-right ${formData.apiPriceAdjustment >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                                        {formData.apiPriceAdjustment > 0 ? '+' : ''}{formData.apiPriceAdjustment || 0}%
-                                    </span>
+                                    <p className="text-[9px] text-slate-500">Only data from these APIs will be served to this user. Leave empty for ALL APIs.</p>
                                 </div>
-                                <p className="text-[9px] text-slate-500 mt-2">Adjust prices exposed via this user's API (e.g. +5% or -2%)</p>
+
+                                <div className="pt-2">
+                                    <label className={`text-[10px] font-normal ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest mb-2 block`}>
+                                        API Price Markup/Discount
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="range"
+                                            min="-50"
+                                            max="50"
+                                            value={formData.apiPriceAdjustment || 0}
+                                            onChange={(e) => setFormData({ ...formData, apiPriceAdjustment: Number(e.target.value) })}
+                                            className="w-full accent-blue-500 h-1.5 bg-blue-900 rounded-lg appearance-none cursor-pointer"
+                                        />
+                                        <span className={`text-xs font-mono font-bold w-12 text-right ${formData.apiPriceAdjustment >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                            {formData.apiPriceAdjustment > 0 ? '+' : ''}{formData.apiPriceAdjustment || 0}%
+                                        </span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-500 mt-1 italic">Adjust prices exposed via this user's API.</p>
+                                </div>
+
+                                <div className="pt-4 border-t border-blue-500/10">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <label className={`text-[10px] font-normal ${isDarkMode ? 'text-blue-400' : 'text-blue-700'} uppercase tracking-widest block`}>
+                                            Data Filtering Mode
+                                        </label>
+                                        <div className="flex bg-slate-800/80 p-1 rounded-xl">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setFormData({...formData, apiFilterMode: 'all'})}
+                                                className={`px-3 py-1 text-[10px] uppercase rounded-lg transition-all ${formData.apiFilterMode === 'all' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400'}`}
+                                            >
+                                                All Data
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setFormData({...formData, apiFilterMode: 'specific'})}
+                                                className={`px-3 py-1 text-[10px] uppercase rounded-lg transition-all ${formData.apiFilterMode === 'specific' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400'}`}
+                                            >
+                                                Specific
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {formData.apiFilterMode === 'specific' && (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-400">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Shape */}
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Shapes Eligibility</label>
+                                                    <Select
+                                                        isMulti
+                                                        options={["Round", "Princess", "Emerald", "Pear", "Oval", "Radiant", "Marquise", "Cushion", "Heart", "Asscher", "Square Radiant"].map(o => ({ value: o, label: o }))}
+                                                        styles={styles}
+                                                        placeholder="All Shapes..."
+                                                        value={formData.apiFilters?.shapes ? formData.apiFilters.shapes.split(',').filter(Boolean).map(v => ({ value: v, label: v })) : []}
+                                                        onChange={(selected) => setFormData({
+                                                            ...formData,
+                                                            apiFilters: { ...formData.apiFilters, shapes: selected ? selected.map(s => s.value).join(',') : "" }
+                                                        })}
+                                                    />
+                                                </div>
+                                                {/* Color */}
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Color Spectrum</label>
+                                                    <Select
+                                                        isMulti
+                                                        options={["D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"].map(o => ({ value: o, label: o }))}
+                                                        styles={styles}
+                                                        placeholder="All Colors..."
+                                                        value={formData.apiFilters?.colors ? formData.apiFilters.colors.split(',').filter(Boolean).map(v => ({ value: v, label: v })) : []}
+                                                        onChange={(selected) => setFormData({
+                                                            ...formData,
+                                                            apiFilters: { ...formData.apiFilters, colors: selected ? selected.map(s => s.value).join(',') : "" }
+                                                        })}
+                                                    />
+                                                </div>
+                                                {/* Clarity */}
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Clarity Grade</label>
+                                                    <Select
+                                                        isMulti
+                                                        options={["FL", "IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "I1"].map(o => ({ value: o, label: o }))}
+                                                        styles={styles}
+                                                        placeholder="All Clarities..."
+                                                        value={formData.apiFilters?.clarities ? formData.apiFilters.clarities.split(',').filter(Boolean).map(v => ({ value: v, label: v })) : []}
+                                                        onChange={(selected) => setFormData({
+                                                            ...formData,
+                                                            apiFilters: { ...formData.apiFilters, clarities: selected ? selected.map(s => s.value).join(',') : "" }
+                                                        })}
+                                                    />
+                                                </div>
+                                                {/* Cut */}
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Cut Quality</label>
+                                                    <Select
+                                                        isMulti
+                                                        options={["Ideal", "EX", "VG", "G", "F", "P"].map(o => ({ value: o, label: o }))}
+                                                        styles={styles}
+                                                        placeholder="All Cuts..."
+                                                        value={formData.apiFilters?.cuts ? formData.apiFilters.cuts.split(',').filter(Boolean).map(v => ({ value: v, label: v })) : []}
+                                                        onChange={(selected) => setFormData({
+                                                            ...formData,
+                                                            apiFilters: { ...formData.apiFilters, cuts: selected ? selected.map(s => s.value).join(',') : "" }
+                                                        })}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Advanced Ranges */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                <RangeBox label="Carat" minK="caratMin" maxK="caratMax" fd={formData} sfd={setFormData} step="0.01" />
+                                                <RangeBox label="Price" minK="priceMin" maxK="priceMax" fd={formData} sfd={setFormData} step="1" />
+                                                <RangeBox label="Table" minK="tableMin" maxK="tableMax" fd={formData} sfd={setFormData} step="0.1" />
+                                                <RangeBox label="Depth" minK="depthMin" maxK="depthMax" fd={formData} sfd={setFormData} step="0.1" />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1114,6 +1281,30 @@ const MarkupApprovalModal = ({ user, onClose, onApprove }) => {
         </div>
     );
 };
+
+const RangeBox = ({ label, minK, maxK, fd, sfd, step }) => (
+    <div className="space-y-1">
+        <label className="text-[8px] text-slate-500 uppercase tracking-[0.2em] font-bold">{label}</label>
+        <div className="flex items-center gap-1">
+            <input 
+                type="number" 
+                placeholder="Min"
+                step={step}
+                className="w-full bg-[#0B1219] border border-slate-800 rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-blue-500"
+                value={fd.apiFilters?.[minK] || ""}
+                onChange={(e) => sfd({ ...fd, apiFilters: { ...fd.apiFilters, [minK]: e.target.value } })}
+            />
+            <input 
+                type="number" 
+                placeholder="Max"
+                step={step}
+                className="w-full bg-[#0B1219] border border-slate-800 rounded-lg px-2 py-1.5 text-[10px] text-white outline-none focus:border-blue-500"
+                value={fd.apiFilters?.[maxK] || ""}
+                onChange={(e) => sfd({ ...fd, apiFilters: { ...fd.apiFilters, [maxK]: e.target.value } })}
+            />
+        </div>
+    </div>
+);
 
 export default Users;
 

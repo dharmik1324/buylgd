@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { logout, logoutUser } from "../../store/authSlice";
+import { logout, logoutUser, updateProfile } from "../../store/authSlice";
 import { removeFromCart } from "../../store/cartSlice";
 import { releaseHold } from "../../store/diamondSlice";
 import { toggleWishlist, removeFromWishlist } from "../../store/wishlistSlice";
@@ -12,8 +12,10 @@ import {
     User, Mail, Phone, Building2, MapPin, Globe, Key,
     ShieldCheck, ShieldAlert, LogOut, Edit3, Camera,
     CheckCircle2, Clock, Trash2, Gem, ExternalLink, Copy,
-    Heart, Eye, X, ChevronDown, ChevronUp, RefreshCcw
+    Heart, Eye, X, ChevronDown, ChevronUp, RefreshCcw, 
+    Settings2, SlidersVertical, Search, Globe2, ShieldCheck as VerifiedIcon
 } from "lucide-react";
+import Select from "react-select";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 
@@ -32,6 +34,13 @@ export const Profile = () => {
         navigate("/login");
         return null;
     }
+
+    const handleFilterUpdate = (field, value) => {
+        dispatch(updateProfile({
+            id: user._id || user.id,
+            apiFilters: { ...user.apiFilters, [field]: value }
+        }));
+    };
 
     const handleLogout = async () => {
         try {
@@ -380,7 +389,7 @@ export const Profile = () => {
                         >
                             <div className="flex items-center gap-3 mb-8">
                                 <div className="w-2 h-8 bg-amber-500 rounded-full" />
-                                <h2 className={`text-xl font-normal uppercase tracking-tighter ${textMain}`}>Authentication Streams</h2>
+                                <h2 className={`text-xl font-normal uppercase tracking-tighter ${textMain}`}>Authentication & API</h2>
                             </div>
 
                             <div className={`p-6 rounded-3xl border ${borderColor} ${isDarkMode ? "bg-black/40" : "bg-slate-50"}`}>
@@ -414,30 +423,194 @@ export const Profile = () => {
                                     </div>
 
                                     {user.isApiOpen && user.companyName && (
-                                        <div className="pt-4 border-t border-slate-800/10">
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                                                    <Globe size={18} />
+                                        <div className="pt-4 border-t border-slate-800/10 space-y-6">
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                                        <Globe size={18} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] uppercase text-blue-500 tracking-[0.2em] font-normal">API Endpoint URL</p>
+                                                        <p className={`text-xs ${textSub} lowercase tracking-tighter`}>Your unique inventory access point</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="text-[10px] uppercase text-blue-500 tracking-[0.2em] font-normal">API Endpoint URL</p>
-                                                    <p className={`text-xs ${textSub} lowercase tracking-tighter`}>Your unique inventory access point</p>
+                                                <div className={`font-mono text-[10px] p-4 rounded-xl ${isDarkMode ? "bg-slate-900" : "bg-white"} border ${borderColor} break-all flex items-center justify-between group`}>
+                                                    <span className="text-blue-400">
+                                                        {`${import.meta.env.VITE_API_BASE_URL}/inventory/${user.companyName.toLowerCase().replace(/\s+/g, '-')}`}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => {
+                                                            const url = `${import.meta.env.VITE_API_BASE_URL}/inventory/${user.companyName.toLowerCase().replace(/\s+/g, '-')}`;
+                                                            navigator.clipboard.writeText(url);
+                                                            toast.success("API Endpoint URL copied to clipboard");
+                                                        }}
+                                                        className="text-slate-600 hover:text-blue-500 transition-colors"
+                                                    >
+                                                        <Copy size={16} />
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div className={`font-mono text-[10px] p-4 rounded-xl ${isDarkMode ? "bg-slate-900" : "bg-white"} border ${borderColor} break-all flex items-center justify-between group`}>
-                                                <span className="text-blue-400">
-                                                    {`${import.meta.env.VITE_API_BASE_URL}/inventory/${user.companyName.toLowerCase().replace(/\s+/g, '-')}`}
-                                                </span>
-                                                <button
-                                                    onClick={() => {
-                                                        const url = `${import.meta.env.VITE_API_BASE_URL}/inventory/${user.companyName.toLowerCase().replace(/\s+/g, '-')}`;
-                                                        navigator.clipboard.writeText(url);
-                                                        toast.success("API Endpoint URL copied to clipboard");
-                                                    }}
-                                                    className="text-slate-600 hover:text-blue-500 transition-colors"
-                                                >
-                                                    <Copy size={16} />
-                                                </button>
+
+                                            {/* API CONFIGURATION SUB-SECTION */}
+                                            <div className={`p-6 rounded-3xl border border-blue-500/20 ${isDarkMode ? "bg-blue-500/[0.03]" : "bg-blue-50/30"}`}>
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <div>
+                                                        <h4 className={`text-xs font-normal uppercase tracking-widest ${textMain}`}>External API Configuration</h4>
+                                                        <p className="text-[9px] text-slate-500 uppercase mt-1">Define data feed behavior</p>
+                                                    </div>
+                                                    <div className="flex bg-slate-900/50 p-1 rounded-xl border border-white/5">
+                                                        <button 
+                                                            disabled={!user.isApiOpen}
+                                                            onClick={() => dispatch(updateProfile({ id: user._id || user.id, apiFilterMode: 'all' }))}
+                                                            className={`px-3 py-1.5 text-[9px] uppercase rounded-lg transition-all ${user.apiFilterMode === 'all' || !user.apiFilterMode ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                        >
+                                                            All Data
+                                                        </button>
+                                                        <button 
+                                                            disabled={!user.isApiOpen}
+                                                            onClick={() => dispatch(updateProfile({ id: user._id || user.id, apiFilterMode: 'specific' }))}
+                                                            className={`px-3 py-1.5 text-[9px] uppercase rounded-lg transition-all ${user.apiFilterMode === 'specific' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                        >
+                                                            Specific
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* API PRICE ADJUSTMENT */}
+                                                <div className="mb-8 p-6 rounded-3xl border border-blue-500/10 bg-slate-900/20">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <SlidersVertical size={14} className="text-blue-500/70" />
+                                                                <h4 className={`text-[10px] font-normal uppercase tracking-widest ${textMain}`}>Global Price Adjustment</h4>
+                                                            </div>
+                                                            <p className="text-[9px] text-slate-500 uppercase mt-0.5">Applied to all diamonds in the feed</p>
+                                                        </div>
+                                                        <div className={`text-xs font-mono font-bold px-3 py-1 rounded-lg ${user.apiPriceAdjustment >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-400'}`}>
+                                                            {user.apiPriceAdjustment > 0 ? '+' : ''}{user.apiPriceAdjustment || 0}%
+                                                        </div>
+                                                    </div>
+                                                    <input 
+                                                        disabled={!user.isApiOpen}
+                                                        type="range" 
+                                                        min="-50" 
+                                                        max="100" 
+                                                        step="1"
+                                                        value={user.apiPriceAdjustment || 0}
+                                                        onChange={(e) => dispatch(updateProfile({ id: user._id || user.id, apiPriceAdjustment: Number(e.target.value) }))}
+                                                        className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-blue-600 outline-none transition-all hover:accent-blue-500"
+                                                    />
+                                                    <div className="flex justify-between mt-2 px-1 text-[8px] text-slate-600/80 font-normal uppercase tracking-widest">
+                                                        <span>-50% (Disc)</span>
+                                                        <span>Base (0)</span>
+                                                        <span>+100% (Inc)</span>
+                                                    </div>
+                                                </div>
+
+                                                {user.apiFilterMode === 'specific' && (
+                                                    <div className="space-y-6 animate-in fade-in slide-in-from-top-1 duration-500">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                            {/* Shape Selector */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-[9px] text-slate-500 uppercase tracking-widest ml-1 font-bold">Shapes Eligibility</label>
+                                                                <MultiSelector 
+                                                                    placeholder="All Shapes Targeted..."
+                                                                    options={["Round", "Princess", "Emerald", "Pear", "Oval", "Radiant", "Marquise", "Cushion", "Heart", "Asscher", "Square Radiant"]}
+                                                                    value={user.apiFilters?.shapes}
+                                                                    onChange={(val) => handleFilterUpdate('shapes', val)}
+                                                                    isDarkMode={isDarkMode}
+                                                                />
+                                                            </div>
+
+                                                            {/* Color Selector */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-[9px] text-slate-500 uppercase tracking-widest ml-1 font-bold">Color Hierarchy</label>
+                                                                <MultiSelector 
+                                                                    placeholder="All Colors Targeted..."
+                                                                    options={["D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]}
+                                                                    value={user.apiFilters?.colors}
+                                                                    onChange={(val) => handleFilterUpdate('colors', val)}
+                                                                    isDarkMode={isDarkMode}
+                                                                />
+                                                            </div>
+
+                                                            {/* Clarity Selector */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-[9px] text-slate-500 uppercase tracking-widest ml-1 font-bold">Clarity Spectrum</label>
+                                                                <MultiSelector 
+                                                                    placeholder="All Clarities Targeted..."
+                                                                    options={["FL", "IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2", "I1"]}
+                                                                    value={user.apiFilters?.clarities}
+                                                                    onChange={(val) => handleFilterUpdate('clarities', val)}
+                                                                    isDarkMode={isDarkMode}
+                                                                />
+                                                            </div>
+
+                                                            {/* Cut Selector */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-[9px] text-slate-500 uppercase tracking-widest ml-1 font-bold">Cut Grading</label>
+                                                                <MultiSelector 
+                                                                    placeholder="All Cut Grades Targeted..."
+                                                                    options={["Ideal", "EX", "VG", "G", "F", "P"]}
+                                                                    value={user.apiFilters?.cuts}
+                                                                    onChange={(val) => handleFilterUpdate('cuts', val)}
+                                                                    isDarkMode={isDarkMode}
+                                                                />
+                                                            </div>
+
+                                                            {/* Polish Selector */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-[9px] text-slate-500 uppercase tracking-widest ml-1 font-bold">Polish Standard</label>
+                                                                <MultiSelector 
+                                                                    placeholder="All Polish Grades Targeted..."
+                                                                    options={["EX", "VG", "G", "F", "P"]}
+                                                                    value={user.apiFilters?.polish}
+                                                                    onChange={(val) => handleFilterUpdate('polish', val)}
+                                                                    isDarkMode={isDarkMode}
+                                                                />
+                                                            </div>
+
+                                                            {/* Symmetry Selector */}
+                                                            <div className="space-y-2">
+                                                                <label className="text-[9px] text-slate-500 uppercase tracking-widest ml-1 font-bold">Symmetry Level</label>
+                                                                <MultiSelector 
+                                                                    placeholder="All Symmetry Grades Targeted..."
+                                                                    options={["EX", "VG", "G", "F", "P"]}
+                                                                    value={user.apiFilters?.symmetry}
+                                                                    onChange={(val) => handleFilterUpdate('symmetry', val)}
+                                                                    isDarkMode={isDarkMode}
+                                                                />
+                                                            </div>
+
+                                                            {/* Location Selector */}
+                                                            <div className="space-y-2 md:col-span-2">
+                                                                <label className="text-[9px] text-slate-500 uppercase tracking-widest ml-1 font-bold">Distribution Centers (Locations)</label>
+                                                                <MultiSelector 
+                                                                    placeholder="All Regional Nodes..."
+                                                                    options={["India", "USA", "Belgium", "Hong Kong", "Israel", "Dubai", "UK"]}
+                                                                    value={user.apiFilters?.location}
+                                                                    onChange={(val) => handleFilterUpdate('location', val)}
+                                                                    isDarkMode={isDarkMode}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* RANGE FILTERS */}
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
+                                                            <RangeInput label="Carat Range" minKey="caratMin" maxKey="caratMax" step="0.01" filters={user.apiFilters} update={handleFilterUpdate} />
+                                                            <RangeInput label="Price Range ($)" minKey="priceMin" maxKey="priceMax" step="1" filters={user.apiFilters} update={handleFilterUpdate} />
+                                                            <RangeInput label="Table %" minKey="tableMin" maxKey="tableMax" step="0.1" filters={user.apiFilters} update={handleFilterUpdate} />
+                                                            <RangeInput label="Depth %" minKey="depthMin" maxKey="depthMax" step="0.1" filters={user.apiFilters} update={handleFilterUpdate} />
+                                                        </div>
+
+                                                        <div className="pt-6 border-t border-slate-800/10 text-center">
+                                                            <p className="text-[8px] text-slate-600 uppercase tracking-widest font-mono">
+                                                                <Settings2 size={10} className="inline mr-1 -mt-0.5" /> 
+                                                                Protocol: Settings are synchronized to terminal core automatically upon state change.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -575,6 +748,97 @@ export const Profile = () => {
                     </div>
                 )}
             </AnimatePresence>
+        </div>
+    );
+};
+
+// ── Shared Internal Components ──
+
+const MultiSelector = ({ options, value, onChange, placeholder, isDarkMode }) => {
+    const selectedValues = value ? value.split(',').filter(Boolean).map(v => ({ value: v, label: v })) : [];
+    const selectOptions = options.map(o => ({ value: o, label: o }));
+
+    const customStyles = {
+        control: (base) => ({
+            ...base,
+            backgroundColor: isDarkMode ? "#070B0F" : "#ffffff",
+            borderColor: isDarkMode ? "#1e293b" : "#e2e8f0",
+            borderRadius: "0.85rem",
+            padding: "2px",
+            fontSize: "12px",
+            boxShadow: "none",
+            "&:hover": { borderColor: "#3b82f6" }
+        }),
+        menu: (base) => ({
+            ...base,
+            backgroundColor: isDarkMode ? "#111922" : "white",
+            border: isDarkMode ? "1px solid #1e293b" : "1px solid #e2e8f0",
+            borderRadius: "0.85rem",
+            zIndex: 50
+        }),
+        option: (base, state) => ({
+            ...base,
+            backgroundColor: state.isSelected ? "#2563eb" : state.isFocused ? (isDarkMode ? "#1e293b" : "#f1f5f9") : "transparent",
+            color: state.isSelected ? "white" : isDarkMode ? "#cbd5e1" : "#0f172a",
+        }),
+        multiValue: (base) => ({
+            ...base,
+            backgroundColor: isDarkMode ? "#1e293b" : "#f1f5f9",
+            borderRadius: "6px",
+        }),
+        multiValueLabel: (base) => ({
+            ...base,
+            color: isDarkMode ? "#3b82f6" : "#2563eb",
+            fontWeight: "normal",
+        }),
+        multiValueRemove: (base) => ({
+            ...base,
+            color: "#64748b",
+            "&:hover": { color: "#ef4444", backgroundColor: "transparent" }
+        }),
+        placeholder: (base) => ({ ...base, color: isDarkMode ? "#334155" : "#94a3b8" }),
+        input: (base) => ({ ...base, color: isDarkMode ? "white" : "black" })
+    };
+
+    return (
+        <Select
+            isMulti
+            placeholder={placeholder}
+            options={selectOptions}
+            value={selectedValues}
+            onChange={(selected) => onChange(selected ? selected.map(s => s.value).join(',') : "")}
+            styles={customStyles}
+        />
+    );
+};
+
+const RangeInput = ({ label, minKey, maxKey, filters, update, step }) => {
+    const isDarkMode = useSelector((state) => state.theme.isDarkMode);
+    return (
+        <div className="space-y-2">
+            <label className="text-[9px] text-slate-500 uppercase tracking-widest ml-1 font-bold">{label}</label>
+            <div className="flex items-center gap-2">
+                <input 
+                    type="number" 
+                    step={step}
+                    placeholder="Min"
+                    className={`w-full ${isDarkMode ? "bg-slate-950/50 border-slate-800 text-white" : "bg-white border-slate-200"} rounded-[0.85rem] px-3 py-2 text-xs outline-none focus:border-blue-500 transition-all font-mono`}
+                    value={filters?.[minKey] || ""}
+                    onBlur={(e) => update(minKey, e.target.value)}
+                    onChange={(e) => {
+                        // local update if we want, but using onBlur for persistence
+                    }}
+                />
+                <span className="text-slate-600">—</span>
+                <input 
+                    type="number" 
+                    step={step}
+                    placeholder="Max"
+                    className={`w-full ${isDarkMode ? "bg-slate-950/50 border-slate-800 text-white" : "bg-white border-slate-200"} rounded-[0.85rem] px-3 py-2 text-xs outline-none focus:border-blue-500 transition-all font-mono`}
+                    value={filters?.[maxKey] || ""}
+                    onBlur={(e) => update(maxKey, e.target.value)}
+                />
+            </div>
         </div>
     );
 };

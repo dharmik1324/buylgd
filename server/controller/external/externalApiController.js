@@ -24,9 +24,27 @@ const getExternalDiamonds = async (req, res) => {
         // Access is now based solely on companyName in the URL
 
 
-        // Fetch diamonds based on user's saved filters
-        const query = { Availability: { $regex: /^In Stock$/i } };
-        const f = user.savedFilters || {};
+        // Fetch diamonds based on user's API settings
+        const query = { Availability: { $in: ["In Stock", "Available", "IN STOCK", "AVAILABLE"] } };
+
+        // 1. Handle API source filtering
+        if (user.allowedApis && user.allowedApis.length > 0) {
+            const InventoryApi = require("../../models/InventoryApi");
+            const apis = await InventoryApi.find({ _id: { $in: user.allowedApis } });
+            const allowedUrls = apis.map(api => api.url.trim());
+            
+            if (allowedUrls.length > 0) {
+                query.Source = { $in: allowedUrls };
+            }
+        }
+
+        // 2. Handle data filtering mode
+        let filtersToApply = {};
+        if (user.apiFilterMode === "specific") {
+            filtersToApply = user.apiFilters || {};
+        }
+
+        const f = filtersToApply;
 
         // Helper to process filters (handles single string, comma-separated string, or array)
         const applyMultiSelectFilter = (field, value) => {
@@ -97,6 +115,7 @@ const getExternalDiamonds = async (req, res) => {
         res.status(200).json({
             success: true,
             company: user.companyName,
+            apiFilterMode: user.apiFilterMode,
             appliedFilters: f,
             queryExecuted: query, // Helpful for debugging
             priceAdjustmentApplied: `${adjustment > 0 ? '+' : ''}${adjustment}%`,
