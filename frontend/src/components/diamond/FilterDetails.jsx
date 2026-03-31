@@ -24,7 +24,7 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
     const debounceTimeoutRef = useRef(null);
 
     const {
-        shapes = ["Round", "Princess", "Emerald", "Pear", "Oval", "Radiant", "Marquise", "Cushion", "Heart", "Asscher", "Square Radiant", "Old Miner", "European Cut", "Rose", "Triangular", "Cushion Modified"],
+        shapes = Array.from(new Set(["ROUND", "PRINCESS", "OVAL", "MARQUISE", "EMERALD", "PEAR", "RADIANT", "CUSHION", "HEART", "ASSCHER", "CUSHION MODIFIED", "EUROPEAN CUT", "OLD MINER", "ROSE", "SQUARE RADIANT", "TRIANGULAR"])),
         colors = ["D", "E", "F", "G", "H", "I", "J"],
         clarities = ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1"],
         cuts = ["ID", "EX", "VG"],
@@ -137,14 +137,14 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
         setFilters(prev => {
             const current = prev[key] || [];
             const valueLower = value.toLowerCase();
-            const exists = current.some(item => 
+            const exists = current.some(item =>
                 typeof item === 'string' ? item.toLowerCase() === valueLower : item === value
             );
 
             return {
                 ...prev,
                 [key]: exists
-                    ? current.filter(item => 
+                    ? current.filter(item =>
                         typeof item === 'string' ? item.toLowerCase() !== valueLower : item !== value
                     )
                     : [...current, value]

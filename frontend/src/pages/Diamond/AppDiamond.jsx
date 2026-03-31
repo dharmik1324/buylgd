@@ -85,7 +85,7 @@ export const AppDiamond = () => {
     filters.cuts.length > 0;
 
   const metadata = {
-    shapes: Array.from(new Set(["ROUND", "PRINCESS", ...(serverMetadata?.shapes || ["ROUND", "PRINCESS", "EMERALD", "PEAR", "OVAL", "RADIANT", "MARQUISE", "CUSHION", "HEART", "ASSCHER", "SQUARE RADIANT", "OLD MINER", "EUROPEAN CUT", "ROSE", "TRIANGULAR", "CUSHION MODIFIED"])])),
+    shapes: Array.from(new Set(["ROUND", "PRINCESS", "OVAL", "MARQUISE", "EMERALD", "PEAR", "RADIANT", "CUSHION", "HEART", "ASSCHER", "CUSHION MODIFIED", "EUROPEAN CUT", "OLD MINER", "ROSE", "SQUARE RADIANT", "TRIANGULAR"])),
     colors: serverMetadata?.colors?.length ? serverMetadata.colors : ["D", "E", "F", "G", "H", "I", "J"],
     clarities: serverMetadata?.clarities?.length ? serverMetadata.clarities : ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1"],
     cuts: ["ID", "EX", "VG"],
