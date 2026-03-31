@@ -180,21 +180,33 @@ const syncInventoryFromApis = async (options = {}) => {
             return { success: true, count: 0, message: "No diamonds found from any active API. Database was preserved." };
         }
 
-        // 1. DELETE ALL OLD DATA FROM APIs (keep CSV data?)
-        // Currently, it's defined to delete everything. Let's stick to that but keep CSV?
-        // Wait, storeDaimondsData.js line 157: `await Diamond.deleteMany({});`
-        // If we want to keep CSV data, we should only delete Source !== "CSV"
+        // 1. DELETE ALL OLD DATA FROM APIs (keep CSV data)
         console.log("[SYNC_UTIL] Replacing all API-sourced data...");
-        
-        // This query ensures that CSV data is preserved while API data is replaced.
-        // If the user wants a full wipe, we can pass a flag.
         await Diamond.deleteMany({ Source: { $ne: "CSV" } });
 
         let insertedCount = 0;
         if (allDiamonds.length > 0) {
+            // Deduplicate by Stock_ID to prevent E11000 duplicate key errors
+            // If multiple APIs return the same Stock_ID, we keep the last one found.
+            const uniqueDiamondsMap = new Map();
+            allDiamonds.forEach(d => {
+                if (d.Stock_ID) {
+                    uniqueDiamondsMap.set(d.Stock_ID, d);
+                }
+            });
+            const uniqueDiamonds = Array.from(uniqueDiamondsMap.values());
+            
+            console.log(`[SYNC_UTIL] Found ${allDiamonds.length} items, reduced to ${uniqueDiamonds.length} unique diamonds.`);
+
             // Use bulk insert for efficiency
-            const result = await Diamond.insertMany(allDiamonds, { ordered: false });
-            insertedCount = result.length;
+            try {
+                const result = await Diamond.insertMany(uniqueDiamonds, { ordered: false });
+                insertedCount = result.length;
+            } catch (bulkError) {
+                // If it still fails (e.g. some other unique constraint), we check how many actually got in
+                insertedCount = bulkError.insertedDocs ? bulkError.insertedDocs.length : 0;
+                console.warn(`[SYNC_UTIL] Some items failed to insert: ${bulkError.message}. Inserted ${insertedCount} items.`);
+            }
         }
 
         console.log(`[SYNC_UTIL] ✅ Sync completed. Inserted: ${insertedCount}. APIs: ${activeApis.length}`);
