@@ -118,9 +118,58 @@ const deleteInventoryApi = async (req, res) => {
 
 
 
+// Test an API configuration without saving or syncing
+const testFetch = async (req, res) => {
+    try {
+        const { url, method, body, headers } = req.body;
+        if (!url) return res.status(400).json({ success: false, message: "URL is required" });
+
+        const axios = require("axios");
+        const { parseConfigString } = require("../../utils/diamondSync");
+
+        const configHeaders = parseConfigString(headers);
+        const configBody = parseConfigString(body);
+
+        let response;
+        if (method === "POST") {
+            response = await axios.post(url, configBody, { headers: configHeaders, timeout: 15000 });
+        } else {
+            response = await axios.get(url, { params: configBody, headers: configHeaders, timeout: 15000 });
+        }
+
+        // Try to locate data in the response
+        let rawData = response.data;
+        let dataToSample = Array.isArray(rawData) ? rawData : (rawData.data || rawData.diamonds || rawData.stock || []);
+        
+        if (!Array.isArray(dataToSample) && typeof dataToSample === 'object') {
+             // Deep search for first array
+             for (let key in dataToSample) {
+                 if (Array.isArray(dataToSample[key])) {
+                     dataToSample = dataToSample[key];
+                     break;
+                 }
+             }
+        }
+
+        res.status(200).json({ 
+            success: true, 
+            count: Array.isArray(dataToSample) ? dataToSample.length : 0,
+            sample: Array.isArray(dataToSample) ? dataToSample.slice(0, 3) : [],
+            fullResponse: typeof rawData === 'object' ? JSON.stringify(rawData).substring(0, 1000) : String(rawData).substring(0, 1000)
+        });
+    } catch (error) {
+        res.status(200).json({ 
+            success: false, 
+            message: error.message,
+            details: error.response?.data ? JSON.stringify(error.response.data).substring(0, 500) : "No details available"
+        });
+    }
+};
+
 module.exports = {
     getInventoryApis,
     createInventoryApi,
     updateInventoryApi,
-    deleteInventoryApi
+    deleteInventoryApi,
+    testFetch
 };

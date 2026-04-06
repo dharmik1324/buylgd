@@ -49,7 +49,7 @@ export const PublicInventory = () => {
   const [selectedDiamond, setSelectedDiamond] = useState(null);
 
   const metadata = {
-    shapes: serverMetadata?.shapes?.length ? serverMetadata.shapes : ["Round"],
+    shapes: serverMetadata?.shapes?.length ? serverMetadata.shapes : ["Round", "Princess", "Oval", "Marquise", "Emerald", "Pear", "Radiant", "Cushion", "Heart", "Asscher"],
     colors: serverMetadata?.colors?.length ? serverMetadata.colors : ["D", "E", "F", "G", "H", "I", "J"],
     clarities: serverMetadata?.clarities?.length ? serverMetadata.clarities : ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1"],
     cuts: ["ID", "EX", "VG"],

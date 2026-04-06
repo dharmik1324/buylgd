@@ -57,6 +57,17 @@ export const deleteInventoryApi = createAsyncThunk(
         }
     }
 );
+export const testInventoryApi = createAsyncThunk(
+    "inventoryApi/test",
+    async (formData, { rejectWithValue }) => {
+        try {
+            const res = await api.post("/admin/inventory-api/test", formData);
+            return res.data;
+        } catch (err) {
+            return rejectWithValue(err.response?.data?.message || "Failed to test API");
+        }
+    }
+);
 
 const inventoryApiSlice = createSlice({
     name: "inventoryApi",

@@ -22,6 +22,7 @@ import { Notifications } from "./pages/admin/Notifications";
 import { Orders } from "./pages/admin/Orders";
 import { AppDiamondDetails } from "./pages/Diamond/AppDiamondDetails";
 import { FilterPage } from "./pages/Diamond/FilterPage";
+import { PublicInventory } from "./pages/Diamond/PublicInventory";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Inquiries } from "./pages/admin/Inquiries";
@@ -58,6 +59,7 @@ function App() {
             }
           >
             {/* <Route path="/about" element={<About />} /> */}
+            <Route path="/inventory" element={<PublicInventory />} />
             <Route path="/diamonds" element={<AppDiamond />} />
             <Route path="/:companyName/inventory" element={<AppDiamond />} />
             <Route path="/:companyName/shop" element={<AppDiamond />} />

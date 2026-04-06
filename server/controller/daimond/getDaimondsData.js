@@ -919,6 +919,72 @@ const getPublicInventory = async (req, res) => {
     }
 };
 
+const getSingleDiamond = async (req, res) => {
+    try {
+        const { id } = req.params;
+        let diamond = null;
+
+        // Try searching by MongoDB ID first
+        if (id.match(/^[0-9a-fA-F]{24}$/)) {
+            diamond = await Diamond.findById(id).lean() || await CsvDiamond.findById(id).lean();
+        }
+
+        // If not found by ID or if ID wasn't a mongo ID, try Stock_ID (Stock_No)
+        if (!diamond) {
+            diamond = await Diamond.findOne({ 
+                $or: [{ Stock_ID: id }, { Stock_No: id }, { Certificate_No: id }] 
+            }).lean() || await CsvDiamond.findOne({ 
+                $or: [{ Stock_ID: id }, { Stock_No: id }, { Certificate_No: id }] 
+            }).lean();
+        }
+
+        if (!diamond) {
+            return res.status(404).json({ success: false, message: "Diamond not found" });
+        }
+
+        // Normalize for frontend
+        const normalized = {
+            ...diamond,
+            source: diamond.csv_filename ? "CSV" : "API",
+            Final_Price: diamond.Final_Price || diamond.SaleAmt || diamond.Price || 0,
+            Reports: diamond.Report_No || diamond.Certificate_No || diamond.Stock_No || "None"
+        };
+
+        res.status(200).json({ success: true, data: normalized });
+    } catch (error) {
+        console.error("[GET_SINGLE_DIAMOND] Error:", error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+const getInventoryMetadata = async (req, res) => {
+    try {
+        const shapeMeta = await Diamond.distinct("Shape");
+        const colorMeta = await Diamond.distinct("Color");
+        const clarityMeta = await Diamond.distinct("Clarity");
+        const priceRange = await Diamond.aggregate([
+            { $group: { _id: null, min: { $min: "$Final_Price" }, max: { $max: "$Final_Price" } } }
+        ]);
+        const caratRange = await Diamond.aggregate([
+            { $group: { _id: null, min: { $min: "$Weight" }, max: { $max: "$Weight" } } }
+        ]);
+
+        const metadata = {
+            shapes: shapeMeta.filter(Boolean),
+            colors: colorMeta.filter(Boolean),
+            clarities: clarityMeta.filter(Boolean),
+            priceMin: priceRange[0]?.min || 500,
+            priceMax: priceRange[0]?.max || 20000,
+            caratMin: caratRange[0]?.min || 0.1,
+            caratMax: caratRange[0]?.max || 5
+        };
+
+        res.status(200).json({ success: true, metadata });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getDiamondsData,
     getDiamondsCount,
@@ -929,5 +995,7 @@ module.exports = {
     holdDiamond,
     releaseHold,
     getHeldDiamonds,
-    getPublicInventory
+    getPublicInventory,
+    getSingleDiamond,
+    getInventoryMetadata
 };

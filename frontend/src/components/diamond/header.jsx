@@ -27,7 +27,7 @@ export const Header = () => {
 
   const companySlug = user?.companyName?.toLowerCase().replace(/\s+/g, '-') || "user";
   const selectionPath = user?.companyName ? `/${companySlug}/selection` : "/filter-selection";
-  const inventoryPath = user?.companyName ? `/${companySlug}/inventory` : "/diamonds";
+  const inventoryPath = token ? (user?.companyName ? `/${companySlug}/inventory` : "/diamonds") : "/inventory";
   const supportPath = user?.companyName ? `/${companySlug}/support` : "/support";
   const chatboxPath = user?.companyName ? `/${companySlug}/chatbox` : "/chatbox";
   const cartPath = user?.companyName ? `/${companySlug}/cart` : "/cart";

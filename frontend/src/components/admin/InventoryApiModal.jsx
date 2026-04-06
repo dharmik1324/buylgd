@@ -78,10 +78,28 @@ export const InventoryApiModal = ({ open, onClose }) => {
         }
     };
 
+    const [testResult, setTestResult] = useState(null);
+    const [testing, setTesting] = useState(false);
+
+    const handleTestFetch = async () => {
+        setTesting(true);
+        setTestResult(null);
+        try {
+            const { testInventoryApi } = await import("../../store/inventoryApiSlice");
+            const result = await dispatch(testInventoryApi(formData)).unwrap();
+            setTestResult(result);
+        } catch (err) {
+            setTestResult({ success: false, message: err });
+        } finally {
+            setTesting(false);
+        }
+    };
+
     const resetForm = () => {
         setFormData({ name: "", url: "", method: "GET", body: "", headers: "", isActive: true });
         setIsAdding(false);
         setEditingId(null);
+        setTestResult(null);
     };
 
 
@@ -257,6 +275,46 @@ export const InventoryApiModal = ({ open, onClose }) => {
                                             placeholder='{ "Authorization": "Bearer token", "Content-Type": "application/json" }'
                                             className={`w-full px-4 py-3 rounded-xl border text-sm outline-none focus:border-blue-500 transition-all font-mono ${inputBg}`}
                                         />
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <button 
+                                            type="button"
+                                            onClick={handleTestFetch}
+                                            disabled={testing || !formData.url}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${isDarkMode ? "bg-slate-800 text-blue-400 hover:bg-slate-700" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}
+                                        >
+                                            {testing ? "Connecting..." : <>Connect & Preview Data</>}
+                                        </button>
+                                        
+                                        <AnimatePresence>
+                                            {testResult && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: "auto" }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className={`mt-4 p-4 rounded-2xl border ${testResult.success ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-red-500/20 bg-red-500/5'}`}
+                                                >
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${testResult.success ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                            {testResult.success ? `Success: Response received with ${testResult.count} items` : 'Connection Failed'}
+                                                        </span>
+                                                        <button onClick={() => setTestResult(null)} className="text-slate-500 hover:text-slate-300"><X size={14}/></button>
+                                                    </div>
+                                                    
+                                                    {testResult.success ? (
+                                                        <div className="space-y-2">
+                                                            <p className="text-[10px] text-slate-400 italic">Example item mapping preview:</p>
+                                                            <pre className="text-[10px] text-slate-300 font-mono bg-black/40 p-3 rounded-xl overflow-x-auto max-h-[150px] custom-scrollbar">
+                                                                {JSON.stringify(testResult.sample[0] || {}, null, 2)}
+                                                            </pre>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-[10px] text-red-400">{testResult.message}</p>
+                                                    )}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 </div>
 
