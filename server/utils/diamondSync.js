@@ -237,9 +237,17 @@ const syncInventoryFromApis = async (options = {}) => {
         }
 
         console.log(`[SYNC_UTIL] ✅ Sync completed. Inserted: ${insertedCount}. APIs: ${activeApis.length}`);
+        
+        // Final Debug Save to file
+        const fs = require('fs');
+        const syncLog = `[${new Date().toISOString()}] Result: ${insertedCount} items from ${activeApis.length} APIs. Summary: ${allDiamonds.length} raw found.\n`;
+        fs.appendFileSync('sync_debug.log', syncLog);
+
         return { success: true, count: insertedCount, apiCount: activeApis.length };
 
     } catch (error) {
+        const fs = require('fs');
+        fs.appendFileSync('sync_debug.log', `[${new Date().toISOString()}] CRITICAL ERROR: ${error.message}\n`);
         console.error("[SYNC_UTIL] Critical Error:", error);
         throw error;
     }

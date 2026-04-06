@@ -166,10 +166,33 @@ const testFetch = async (req, res) => {
     }
 };
 
+const triggerManualSync = async (req, res) => {
+    try {
+        console.log("[API_SYNC] Manual sync requested via admin. Triggering background sync...");
+        
+        const { syncInventoryFromApis } = require("../../utils/diamondSync");
+
+        // We trigger it asynchronously to avoid blocking the response
+        syncInventoryFromApis().then(result => {
+             console.log(`[API_SYNC] Manual background sync completed: ${result.count} items.`);
+        }).catch(err => {
+             console.error("[API_SYNC] Manual background sync failed:", err.message);
+        });
+
+        res.status(200).json({ 
+            success: true, 
+            message: "Background synchronization started. Please check back in a few minutes." 
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getInventoryApis,
     createInventoryApi,
     updateInventoryApi,
     deleteInventoryApi,
-    testFetch
+    testFetch,
+    triggerManualSync
 };
