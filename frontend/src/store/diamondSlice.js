@@ -8,8 +8,8 @@ export const syncInventory = createAsyncThunk(
   "diamonds/syncInventory",
   async (_, { rejectWithValue, dispatch }) => {
     try {
-      const res = await api.get("/admin/store-diamonds/store");
-      toast.success(`Inventory updated: ${res.data.total} items processed`);
+      const res = await api.post("/admin/inventory-api/sync");
+      toast.success(res.data.message || `Inventory sync successful: ${res.data.count} items.`);
       dispatch(fetchDiamonds({ page: 1, limit: 12 })); // Refresh first page
       return res.data;
     } catch (err) {

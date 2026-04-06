@@ -219,6 +219,7 @@ app.use("/api", externalRoutes);
     // Added by Antigravity: Ensure data is always fresh on server start and every 1 hour
     const { syncInventoryFromApis } = require("./utils/diamondSync");
     
+    /*
     // 1. Initial background sync (5 seconds after startup to allow full connection)
     setTimeout(() => {
         console.log("[STARTUP] Triggering initial background sync from external APIs...");
@@ -226,6 +227,7 @@ app.use("/api", externalRoutes);
             console.error("[STARTUP] Initial sync failed:", err.message);
         });
     }, 5000);
+    */
 
     // 2. Periodic sync (Every 1 hour)
     const SYNC_INTERVAL = 60 * 60 * 1000; 

@@ -163,12 +163,24 @@ const syncInventoryFromApis = async (options = {}) => {
                                 Symmetry: getV(["symmetry", "SymmetryName", "Symmetry_Name", "SYMMETRY"]),
                                 Lab: getV(["lab", "LabName", "Lab_Name", "LAB"]),
                                 Report: getV(["Lab_Report_No", "reportNo", "Certificate_No", "Report"]),
-                                Final_Price: Number(getV(["SaleAmt", "totalPrice", "Final_Price", "Price"])) || 0,
-                                Diamond_Image: getV(["Stone_Img_url", "imageLink", "Diamond_Image", "ImageURL"]) || autoDiscoverMedia('image'),
-                                Diamond_Video: getV(["Video_url", "videoLink", "Diamond_Video", "v360"]) || autoDiscoverMedia('video'),
-                                Certificate_Image: getV(["Certificate_file_url", "certiFile", "Certificate_Image"]) || autoDiscoverMedia('cert'),
-                                Availability: getV(["StockStatus", "status", "Availability"], "In Stock"),
+                                Final_Price: Number(getV(["SaleAmt", "totalPrice", "Final_Price", "Price", "Amount", "Net_Amount", "Price"])) || 0,
+                                Price_Per_Carat: Number(getV(["SaleRate", "pricePerCt", "Price_Per_Carat", "Rate", "PricePerCt", "Rate_Per_Ct", "Net_Amount"])) || 0,
+                                Diamond_Image: getV(["Stone_Img_url", "imageLink", "Diamond_Image", "Image_Link", "view_image", "ImageURL", "still_image", "Image_URL"]) || autoDiscoverMedia('image'),
+                                Diamond_Video: getV(["Video_url", "videoLink", "Diamond_Video", "Video_Link", "v360", "vdbVideo", "VideoURL", "Video_URL"]) || autoDiscoverMedia('video'),
+                                Certificate_Image: getV(["Certificate_file_url", "certiFile", "Certificate_Image", "Certi_Link", "CertificateURL", "CertiURL", "cert_url"]) || autoDiscoverMedia('cert'),
+                                Availability: getV(["StockStatus", "status", "Availability", "Status"], "In Stock"),
                                 Measurements: getV(["Measurement", "measurements", "Dimensions"]),
+                                Depth: getV(["Total_Depth_Per", "depth", "DepthPer", "Depth_Per", "Depth"]),
+                                table_name: getV(["Table_Diameter_Per", "table", "TablePer", "Table_Name", "Table", "Table_Per"]),
+                                Girdle: getV(["GirdleName", "Girdle", "Girdle_Name"]) || (item.girdleThin && item.girdleThick ? `${item.girdleThin}-${item.girdleThick}` : (item.girdleThin || item.girdleThick || "")),
+                                Crown: getV(["CrownHeight", "crownHeight", "Crown", "Crown_Height", "CrownAngle"]),
+                                Pavilion: getV(["PavillionHeight", "pavilionDepth", "Pavilion", "Pavilion_Depth", "PavilionAngle"]),
+                                Culet: getV(["CuletSize", "culetSize", "Culet", "Culet_Size", "culet"]),
+                                Ratio: getV(["Ratio", "ratio", "Ratio"]),
+                                Fluorescence: getV(["FlrIntens", "fluorescenceIntensity", "Fluorescence", "FluorescenceName", "Fluor", "Fluo"]),
+                                Bgm: getV(["Milkey", "milky", "BGM", "Bgm", "EyeClean"]),
+                                Growth_Type: getV(["CVD_HPHT", "growthType", "Growth_Type", "Growth"]),
+                                Location: getV(["Location", "location", "City", "Country"]),
                                 Source: apiConfig.url.trim(),
                             };
                         });
@@ -183,39 +195,34 @@ const syncInventoryFromApis = async (options = {}) => {
             }
         }
 
-        // Logic check: only replace if we found something OR if we just removed all APIs
-        if (allDiamonds.length === 0 && activeApis.length > 0) {
-            return { success: true, count: 0, message: "No diamonds found from any active API. Database was preserved." };
-        }
-
-        // 1. DELETE ALL OLD DATA FROM APIs (keep CSV data)
-        console.log("[SYNC_UTIL] Replacing all API-sourced data...");
-        await Diamond.deleteMany({ Source: { $ne: "CSV" } });
-
-        let insertedCount = 0;
+        // Process and insert after ALL APIs are successful
         if (allDiamonds.length > 0) {
-            // Deduplicate by Stock_ID to prevent E11000 duplicate key errors
-            // If multiple APIs return the same Stock_ID, we keep the last one found.
+            // Deduplicate by Stock_ID
             const uniqueDiamondsMap = new Map();
             allDiamonds.forEach(d => {
-                if (d.Stock_ID) {
-                    uniqueDiamondsMap.set(d.Stock_ID, d);
-                }
+                if (d.Stock_ID) uniqueDiamondsMap.set(d.Stock_ID, d);
             });
             const uniqueDiamonds = Array.from(uniqueDiamondsMap.values());
             
-            console.log(`[SYNC_UTIL] Found ${allDiamonds.length} items, reduced to ${uniqueDiamonds.length} unique diamonds.`);
+            console.log(`[SYNC_UTIL] Found ${allDiamonds.length} items, reduced to ${uniqueDiamonds.length} unique. Replacing data...`);
 
-            // Use bulk insert for efficiency
+            // 1. DELETE ONLY AFTER SUCCESSFUL FETCH!
+            await Diamond.deleteMany({ Source: { $ne: "CSV" } });
+
+            // 2. Insert new data
             try {
                 const result = await Diamond.insertMany(uniqueDiamonds, { ordered: false });
                 insertedCount = result.length;
             } catch (bulkError) {
-                // If it still fails (e.g. some other unique constraint), we check how many actually got in
                 insertedCount = bulkError.insertedDocs ? bulkError.insertedDocs.length : 0;
-                console.warn(`[SYNC_UTIL] Some items failed to insert: ${bulkError.message}. Inserted ${insertedCount} items.`);
+                console.warn(`[SYNC_UTIL] Bulk insert partial success: ${insertedCount} items inserted.`);
             }
+        } else if (activeApis.length > 0) {
+             console.warn("[SYNC_UTIL] No diamonds found from any active API. Skipping replace to preserve data.");
+             return { success: false, count: 0, message: "No diamonds found from APIs. preservng DB." };
         }
+
+        console.log(`[SYNC_UTIL] ✅ Sync completed. Inserted: ${insertedCount}. APIs: ${activeApis.length}`);
 
         console.log(`[SYNC_UTIL] ✅ Sync completed. Inserted: ${insertedCount}. APIs: ${activeApis.length}`);
         

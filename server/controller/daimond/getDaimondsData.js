@@ -23,7 +23,6 @@ const getDiamondsData = async (req, res) => {
         const activeApiUrls = activeApis.map(api => api.url);
 
         let {
-
             page = 1,
             limit = 12,
             search = "",
@@ -37,8 +36,21 @@ const getDiamondsData = async (req, res) => {
             caratMax,
             sort = "newest",
             source = "",
-            includeStats = "false"
+            includeStats = "false",
+            // Also support singular names from frontend
+            shape,
+            color,
+            clarity,
+            cut
         } = req.query;
+
+        // Map singular frontend filters to plural backend filters
+        if (!shapes && shape) shapes = shape;
+        if (!colors && color) colors = color;
+        if (!clarities && clarity) clarities = clarity;
+        if (!cuts && cut) cuts = cut;
+        
+        const srcUpper = (source || "").toUpperCase();
 
         page = Math.max(1, parseInt(page) || 1);
         limit = Math.max(1, parseInt(limit) || 12);
@@ -174,18 +186,31 @@ const getDiamondsData = async (req, res) => {
             ...(Object.keys(priceFilter).length ? { Final_Price: priceFilter } : {})
         };
 
-        if (source) {
-            finalMatch.source = source.toUpperCase();
+        if (srcUpper) {
+            finalMatch.source = srcUpper;
         }
 
-        // Filtering for active sources only in the main collection (APIs)
-        const activeSourceMatch = { $match: { Source: { $in: activeApiUrls } } };
+        // Filtering for active sources with case-insensitive regex for precision
+        const activeSourceRegex = activeApiUrls
+            .filter(url => typeof url === 'string' && url.length > 0)
+            .map(url => {
+                try {
+                    return new RegExp(`^${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+                } catch (e) {
+                    return null;
+                }
+            })
+            .filter(Boolean);
+
+        const activeSourceMatch = activeSourceRegex.length > 0 
+            ? { $match: { Source: { $in: activeSourceRegex } } }
+            : { $match: { _id: { $exists: false } } };
 
         // 1. Get Totals
         const countPipeline = [];
-        if (source?.toUpperCase() === "CSV") {
+        if (srcUpper === "CSV") {
             countPipeline.push(normalizeCsv, { $match: finalMatch });
-        } else if (source?.toUpperCase() === "API") {
+        } else if (srcUpper === "API") {
             countPipeline.push(activeSourceMatch, normalizeMain, { $match: finalMatch });
         } else {
             countPipeline.push(
@@ -206,7 +231,7 @@ const getDiamondsData = async (req, res) => {
 
         countPipeline.push({ $count: "total" });
 
-        const countResult = (source.toUpperCase() === "CSV") 
+        const countResult = (srcUpper === "CSV") 
             ? await CsvDiamond.aggregate(countPipeline)
             : await Diamond.aggregate(countPipeline);
         const total = countResult[0]?.total || 0;
@@ -220,12 +245,12 @@ const getDiamondsData = async (req, res) => {
         else sortStage.createdAt = -1;
 
         const dataPipeline = [];
-        if (source?.toUpperCase() === "CSV") {
+        if (srcUpper === "CSV") {
             dataPipeline.push(
                 normalizeCsv,
                 { $match: finalMatch }
             );
-        } else if (source?.toUpperCase() === "API") {
+        } else if (srcUpper === "API") {
             dataPipeline.push(
                 activeSourceMatch,
                 normalizeMain,
