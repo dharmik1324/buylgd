@@ -17,10 +17,11 @@ const getDiamondsData = async (req, res) => {
             }
         }
         const markupFactor = 1 + (markup / 100);
-        
+
         // Fetch ALL currently active API URLs for strict source filtering
         const activeApis = await InventoryApi.find({ isActive: true }).select('url');
         const activeApiUrls = activeApis.map(api => api.url);
+        console.log('DEBUG: Found', activeApis.length, 'active APIs. URLs:', activeApiUrls);
 
         let {
             page = 1,
@@ -191,19 +192,8 @@ const getDiamondsData = async (req, res) => {
         }
 
         // Filtering for active sources with case-insensitive regex for precision
-        const activeSourceRegex = activeApiUrls
-            .filter(url => typeof url === 'string' && url.length > 0)
-            .map(url => {
-                try {
-                    return new RegExp(`^${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
-                } catch (e) {
-                    return null;
-                }
-            })
-            .filter(Boolean);
-
-        const activeSourceMatch = activeSourceRegex.length > 0 
-            ? { $match: { Source: { $in: activeSourceRegex } } }
+        const activeSourceMatch = activeApiUrls.length > 0 
+            ? { $match: { Source: { $in: activeApiUrls } } }
             : { $match: { _id: { $exists: false } } };
 
         // 1. Get Totals
