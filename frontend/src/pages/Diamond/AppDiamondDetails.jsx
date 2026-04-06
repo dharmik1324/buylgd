@@ -144,30 +144,53 @@ export const AppDiamondDetails = ({ onClose, diamond, isDarkMode }) => {
     const specVal = isDarkMode ? "text-slate-200" : "text-[#222]";
     const divider = isDarkMode ? "border-slate-800" : "border-[#ebebea]";
 
-    const specs = [
-        { label: "Lab", value: diamond.Lab || "GIA" },
-        { label: "Depth", value: diamond.Depth ? `${diamond.Depth}%` : "—" },
-        { label: "Report#", value: diamond.Report || "—" },
-        { label: "Table", value: diamond.table_name ? `${diamond.table_name}%` : "—" },
-        { label: "Shape", value: diamond.Shape || "—" },
-        { label: "Girdle", value: diamond.Girdle || "—" },
-        { label: "Carat", value: (diamond.Weight || 0).toFixed(2) },
-        { label: "Crown", value: diamond.Crown || "—" },
-        { label: "Color", value: diamond.Color || "—" },
-        { label: "Pavilion", value: diamond.Pavilion || "—" },
-        { label: "Clarity", value: diamond.Clarity || "—" },
-        { label: "Culet", value: diamond.Culet || "None" },
-        { label: "Cut", value: diamond.Cut || "—" },
-        { label: "Meas", value: diamond.Measurements || "—" },
-        { label: "Polish", value: diamond.Polish || "—" },
-        { label: "Ratio", value: diamond.Ratio || "—" },
-        { label: "Symmetry", value: diamond.Symmetry || "—" },
-        { label: "BGM", value: diamond.Bgm || "—" },
-        { label: "Fluor", value: diamond.Fluorescence || "None" },
-        { label: "Treat", value: diamond.Treatment || "None" },
-        { label: "Location", value: diamond.Location || "—" },
-        { label: "Growth Type", value: diamond.Growth_Type || "—" },
+    // Standard Keys we already map to specific labels
+    const mappedLabels = {
+        Lab: "Lab", Depth: "Depth", Report: "Report#", table_name: "Table",
+        Shape: "Shape", Girdle: "Girdle", Weight: "Carat", Crown: "Crown",
+        Color: "Color", Pavilion: "Pavilion", Clarity: "Clarity", Culet: "Culet",
+        Cut: "Cut", Measurements: "Meas", Polish: "Polish", Ratio: "Ratio",
+        Symmetry: "Symmetry", Bgm: "BGM", Fluorescence: "Fluor", Treatment: "Treat",
+        Location: "Location", Growth_Type: "Growth Type", Stock_ID: "Stock_ID",
+        Stock_No: "Stock_No"
+    };
+
+    // Fields to exclude from the dynamic list (already shown elsewhere or internal)
+    const excludeFields = [
+        "_id", "__v", "createdAt", "updatedAt", "Diamond_Image", "Diamond_Video", 
+        "Certificate_Image", "Final_Price", "Price_Per_Carat", "source", "onHold", 
+        "holdBy", "holdExpiresAt", "Availability", "Stock", "Source", "Reports"
     ];
+
+    const specs = [];
+    
+    // 1. Add mapped standard fields in preferred order
+    const standardOrder = [
+        "Lab", "Depth", "Report", "table_name", "Shape", "Girdle", "Weight", "Crown",
+        "Color", "Pavilion", "Clarity", "Culet", "Cut", "Measurements", "Polish", 
+        "Ratio", "Symmetry", "Bgm", "Fluorescence", "Treatment", "Location", "Growth_Type"
+    ];
+
+    standardOrder.forEach(key => {
+        if (diamond[key] !== undefined) {
+            let val = diamond[key];
+            if (key === "Weight") val = (Number(val) || 0).toFixed(2);
+            if ((key === "Depth" || key === "table_name") && val) val = `${val}%`;
+            specs.push({ label: mappedLabels[key], value: val || "—" });
+        }
+    });
+
+    // 2. Automatically add ANY other fields that aren't excluded
+    Object.keys(diamond).forEach(key => {
+        if (!standardOrder.includes(key) && !excludeFields.includes(key) && !mappedLabels[key]) {
+            const val = diamond[key];
+            if (val !== null && val !== undefined && val !== "" && typeof val !== 'object') {
+                // Format key nicely: "Fancy_Color" -> "Fancy Color"
+                const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                specs.push({ label, value: String(val) });
+            }
+        }
+    });
 
     return (
         <>

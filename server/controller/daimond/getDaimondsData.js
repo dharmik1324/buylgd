@@ -52,7 +52,13 @@ const getDiamondsData = async (req, res) => {
                 Final_Price: { 
                     $round: [
                         { $multiply: [
-                            { $toDouble: { $ifNull: ["$Final_Price", "$SaleAmt", "$Price", 0] } },
+                            { $toDouble: { 
+                                $cond: [
+                                    { $or: [{ $eq: ["$Final_Price", 0] }, { $eq: ["$Final_Price", null] }] },
+                                    { $ifNull: ["$SaleAmt", "$Price", 0] },
+                                    "$Final_Price"
+                                ]
+                            } },
                             markupFactor
                         ] },
                         2
@@ -61,20 +67,44 @@ const getDiamondsData = async (req, res) => {
                 Price_Per_Carat: { 
                     $round: [
                         { $multiply: [
-                            { $toDouble: { $ifNull: ["$Price_Per_Carat", "$Rate", 0] } },
+                            { $toDouble: { 
+                                $cond: [
+                                    { $or: [{ $eq: ["$Price_Per_Carat", 0] }, { $eq: ["$Price_Per_Carat", null] }] },
+                                    { $ifNull: ["$SaleRate", "$Rate", 0] },
+                                    "$Price_Per_Carat"
+                                ]
+                            } },
                             markupFactor
                         ] },
                         2
                     ]
                 },
                 Weight: { $toDouble: { $ifNull: ["$Weight", 0] } },
-                Stock_No: { $ifNull: ["$Stock_No", "$Stock_ID", "$Stock"] },
-                Certificate_No: { $ifNull: ["$Certificate_No", "$Lab Report No"] },
+                Stock_No: { $ifNull: ["$Stone_NO", "$Stock_No", "$Stock_ID", "$Stock"] },
+                Certificate_No: { $ifNull: ["$Lab_Report_No", "$Certificate_No", "$Lab Report No"] },
                 Color: { $ifNull: ["$Color", "$color"] },
                 Clarity: { $ifNull: ["$Clarity", "$clarity"] },
-                Diamond_Video: { $ifNull: ["$Diamond_Video", "$videoLink", "$Video"] },
-                Certificate_Image: { $ifNull: ["$Certificate_Image", "$certiFile", "$certi_file", "$Lab Report No"] },
-                Diamond_Image: { $ifNull: ["$Diamond_Image", "$imageLink", "$Image", "$View Image"] }
+                Diamond_Video: { 
+                    $cond: [
+                        { $or: [{ $eq: ["$Diamond_Video", ""] }, { $eq: ["$Diamond_Video", null] }] },
+                        { $ifNull: ["$Video_url", "$videoLink", "$Video", ""] },
+                        "$Diamond_Video"
+                    ]
+                },
+                Certificate_Image: { 
+                    $cond: [
+                        { $or: [{ $eq: ["$Certificate_Image", ""] }, { $eq: ["$Certificate_Image", null] }] },
+                        { $ifNull: ["$Certificate_file_url", "$certiFile", "$certi_file", "$Lab Report No", ""] },
+                        "$Certificate_Image"
+                    ]
+                },
+                Diamond_Image: { 
+                    $cond: [
+                        { $or: [{ $eq: ["$Diamond_Image", ""] }, { $eq: ["$Diamond_Image", null] }] },
+                        { $ifNull: ["$Stone_Img_url", "$imageLink", "$Image", "$View Image", ""] },
+                        "$Diamond_Image"
+                    ]
+                }
             }
         };
 
@@ -729,13 +759,42 @@ const getPublicInventory = async (req, res) => {
             $addFields: {
                 source: "API",
                 Shape: { $toUpper: { $trim: { input: { $ifNull: ["$Shape", "$SHAPE", ""] } } } },
-                Final_Price: { $toDouble: { $ifNull: ["$Final_Price", "$SaleAmt", "$Price", 0] } },
+                Final_Price: { 
+                    $toDouble: { 
+                        $cond: [
+                             { $or: [{ $eq: ["$Final_Price", 0] }, { $eq: ["$Final_Price", null] }] },
+                             { $ifNull: ["$SaleAmt", "$Price", 0] },
+                             "$Final_Price"
+                        ]
+                    } 
+                },
                 Weight: { $toDouble: { $ifNull: ["$Weight", 0] } },
-                Stock_No: { $ifNull: ["$Stock_No", "$Stock_ID", "$Stock"] },
-                Certificate_No: { $ifNull: ["$Certificate_No", "$Lab Report No"] },
+                Stock_No: { $ifNull: ["$Stock_No", "$Stone_NO", "$Stock_ID", "$Stock"] },
+                Certificate_No: { $ifNull: ["$Certificate_No", "$Lab_Report_No", "$Lab Report No"] },
                 Color: { $ifNull: ["$Color", "$color"] },
                 Clarity: { $ifNull: ["$Clarity", "$clarity"] },
-                Availability: { $ifNull: ["$Availability", "$status", "Available"] }
+                Availability: { $ifNull: ["$Availability", "$StockStatus", "$status", "Available"] },
+                Diamond_Image: { 
+                    $cond: [
+                        { $or: [{ $eq: ["$Diamond_Image", ""] }, { $eq: ["$Diamond_Image", null] }] },
+                        { $ifNull: ["$Stone_Img_url", "$imageLink", "$Image", ""] },
+                        "$Diamond_Image"
+                    ]
+                },
+                Diamond_Video: { 
+                    $cond: [
+                        { $or: [{ $eq: ["$Diamond_Video", ""] }, { $eq: ["$Diamond_Video", null] }] },
+                        { $ifNull: ["$Video_url", "$videoLink", "$Video", ""] },
+                        "$Diamond_Video"
+                    ]
+                },
+                Certificate_Image: { 
+                    $cond: [
+                        { $or: [{ $eq: ["$Certificate_Image", ""] }, { $eq: ["$Certificate_Image", null] }] },
+                        { $ifNull: ["$Certificate_file_url", "$certiFile", "$Report", ""] },
+                        "$Certificate_Image"
+                    ]
+                }
             }
         };
 
@@ -862,9 +921,13 @@ const getPublicInventory = async (req, res) => {
             {
                 $project: {
                     Shape: 1, Weight: 1, Color: 1, Clarity: 1, Cut: 1,
-                    Polish: 1, Symmetry: 1, Lab: 1, Final_Price: 1,
-                    Diamond_Image: 1, Availability: 1, Stock_No: 1,
-                    Certificate_No: 1, source: 1
+                    Polish: 1, Symmetry: 1, Lab: 1, Final_Price: 1, Price_Per_Carat: 1,
+                    Diamond_Image: 1, Diamond_Video: 1, Certificate_Image: 1,
+                    Availability: 1, Stock_No: 1, Stock_ID: 1,
+                    Certificate_No: 1, source: 1, Measurements: 1,
+                    Depth: 1, table_name: 1, Girdle: 1, Crown: 1, Pavilion: 1,
+                    Culet: 1, Ratio: 1, Fluorescence: 1, Bgm: 1, Growth_Type: 1,
+                    Location: 1
                 }
             }
         );

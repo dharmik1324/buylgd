@@ -123,49 +123,76 @@ const syncInventoryFromApis = async (options = {}) => {
                         const getV = (preferredKeys, fallback = "") => {
                             for (const pk of preferredKeys) {
                                 // Priority 1: Exact case match
-                                if (item[pk] !== undefined && item[pk] !== null) return item[pk];
+                                if (item[pk] !== undefined && item[pk] !== null && String(item[pk]).trim() !== "") return item[pk];
                                 // Priority 2: Case-insensitive match from the map
                                 const lowerPk = pk.toLowerCase();
-                                if (lowerMap[lowerPk] !== undefined && lowerMap[lowerPk] !== null) return lowerMap[lowerPk];
+                                if (lowerMap[lowerPk] !== undefined && lowerMap[lowerPk] !== null && String(lowerMap[lowerPk]).trim() !== "") return lowerMap[lowerPk];
                             }
                             return fallback;
                         };
 
-                        const stockId = getV(["stockNo", "Stock_ID", "id", "Ref_No", "ref_No", "Stock_No", "stock_no", "StockNo", "SRNO"]);
+                        // helper to find any key that looks like it contains a URL for a specific type
+                        const autoDiscoverMedia = (type) => {
+                            const values = Object.values(item);
+                            for (const val of values) {
+                                if (typeof val !== 'string' || !val.startsWith('http')) continue;
+                                const lowerVal = val.toLowerCase();
+                                
+                                if (type === 'image') {
+                                    if (lowerVal.endsWith('.jpg') || lowerVal.endsWith('.jpeg') || lowerVal.endsWith('.png') || lowerVal.endsWith('.webp') || lowerVal.includes('still.jpg')) return val;
+                                } else if (type === 'video') {
+                                    if (lowerVal.endsWith('.mp4') || lowerVal.endsWith('.webm') || lowerVal.includes('video') || lowerVal.includes('360') || lowerVal.includes('v360')) {
+                                         // Basic exclusion for common non-video URLs that might be caught
+                                         if (!lowerVal.endsWith('.jpg') && !lowerVal.endsWith('.png') && !lowerVal.includes('cert')) return val;
+                                    }
+                                } else if (type === 'cert') {
+                                    if (lowerVal.includes('cert') || lowerVal.includes('pdf') || lowerVal.includes('report') || lowerVal.includes('verify')) return val;
+                                }
+                            }
+                            return "";
+                        };
+
+                        const stockId = getV(["Stone_NO", "Ref_No", "ref_No", "Stock_No", "stock_no", "StockNo", "SRNO", "stockNo", "Stock_ID", "id", "Item_No"]);
+                        if (!stockId) console.log(`[SYNC_DEBUG] No stock ID found for item. Keys available: ${itemKeys.join(', ')}`);
                         
-                        return {
-                            ...item, // Raw data as base
+                        // Map standard fields with priority and improved fallback
+                        const diamond = {
+                            ...item, // Keep EVERYTHING from raw API
                             Stock_ID: stockId || `AUTO-${apiConfig._id.toString().substring(0,4)}-${idx}`,
                             Stock: stockId || `AUTO-${idx}`,
-                            Shape: getV(["shape", "ShapeName", "Shape_Name"]),
-                            Weight: Number(getV(["weight", "Carat", "Cts", "cts"])) || 0,
-                            Color: getV(["color", "ColorName", "Color_Name"]),
-                            Clarity: getV(["clarity", "ClarityName", "Clarity_Name"]),
-                            Cut: getV(["cut", "CutName", "Cut_Name"]),
-                            Polish: getV(["polish", "PolishName", "Polish_Name"]),
-                            Symmetry: getV(["symmetry", "SymmetryName", "Symmetry_Name"]),
-                            Lab: getV(["lab", "LabName", "Lab_Name"]),
-                            Report: getV(["reportNo", "Certificate_No", "Report_No", "Certi_No", "CertificateNo"]),
-                            Final_Price: Number(getV(["totalPrice", "Final_Price", "Price", "Amount", "Net_Amount"])) || 0,
-                            Price_Per_Carat: Number(getV(["pricePerCt", "Price_Per_Carat", "Rate", "PricePerCt"])) || 0,
-                            Diamond_Image: getV(["imageLink", "Diamond_Image", "Image_Link", "ImageURL", "still_image"]),
-                            Diamond_Video: getV(["videoLink", "Diamond_Video", "Video_Link", "VideoURL"]),
-                            Certificate_Image: getV(["certiFile", "Certificate_Image", "Certi_Link", "CertificateURL"]),
-                            Availability: getV(["status", "Availability"], "In Stock"),
-                            Measurements: getV(["measurements", "Measurement"]),
-                            Depth: getV(["depth", "DepthPer", "Depth_Per"]),
-                            table_name: getV(["table", "TablePer", "Table_Name"]),
-                            Girdle: getV(["Girdle"]) || (item.girdleThin && item.girdleThick ? `${item.girdleThin}-${item.girdleThick}` : (item.girdleThin || item.girdleThick || "")),
-                            Crown: getV(["crownHeight", "Crown", "Crown_Height"]),
-                            Pavilion: getV(["pavilionDepth", "Pavilion", "Pavilion_Depth"]),
-                            Culet: getV(["culetSize", "Culet", "Culet_Size"]),
-                            Ratio: getV(["ratio", "Ratio"]),
-                            Fluorescence: getV(["fluorescenceIntensity", "Fluorescence", "FluorescenceName"]),
-                            Bgm: getV(["milky", "BGM", "Bgm"]),
-                            Growth_Type: getV(["growthType", "Growth_Type"]),
-                            Location: getV(["location", "Location"]),
+                            Shape: getV(["shape", "ShapeName", "Shape_Name", "SHAPE", "Shape"]),
+                            Weight: Number(getV(["weight", "Carat", "Cts", "cts", "Weight", "Size"])) || 0,
+                            Color: getV(["color", "ColorName", "Color_Name", "COLOR", "Color"]),
+                            Clarity: getV(["clarity", "ClarityName", "Clarity_Name", "CLARITY", "Clarity"]),
+                            Cut: getV(["cut", "CutName", "Cut_Name", "CUT", "Cut"]),
+                            Polish: getV(["polish", "PolishName", "Polish_Name", "POLISH", "Polish", "Symm"]),
+                            Symmetry: getV(["symmetry", "SymmetryName", "Symmetry_Name", "SYMMETRY", "Symmetry"]),
+                            Lab: getV(["lab", "LabName", "Lab_Name", "LAB", "Lab"]),
+                            Report: getV(["Lab_Report_No", "reportNo", "Certificate_No", "Report_No", "Certi_No", "CertificateNo", "Report"]),
+                            Final_Price: Number(getV(["SaleAmt", "totalPrice", "Final_Price", "Price", "Amount", "Net_Amount", "Price"])) || 0,
+                            Price_Per_Carat: Number(getV(["SaleRate", "pricePerCt", "Price_Per_Carat", "Rate", "PricePerCt", "Rate_Per_Ct", "Net_Amount"])) || 0,
+                            
+                            // Media fields with fallback to auto-discovery
+                            Diamond_Image: getV(["Stone_Img_url", "imageLink", "Diamond_Image", "Image_Link", "view_image", "ImageURL", "still_image", "Image_URL", "still_image"]) || autoDiscoverMedia('image'),
+                            Diamond_Video: getV(["Video_url", "videoLink", "Diamond_Video", "Video_Link", "v360", "vdbVideo", "VideoURL", "Video_URL"]) || autoDiscoverMedia('video'),
+                            Certificate_Image: getV(["Certificate_file_url", "certiFile", "Certificate_Image", "Certi_Link", "CertificateURL", "CertiURL", "cert_url"]) || autoDiscoverMedia('cert'),
+                            
+                            Availability: getV(["StockStatus", "status", "Availability", "Status"], "In Stock"),
+                            Measurements: getV(["Measurement", "measurements", "Measurement", "Dimensions"]),
+                            Depth: getV(["Total_Depth_Per", "depth", "DepthPer", "Depth_Per", "Depth"]),
+                            table_name: getV(["Table_Diameter_Per", "table", "TablePer", "Table_Name", "Table", "Table_Per"]),
+                            Girdle: getV(["GirdleName", "Girdle", "Girdle_Name"]) || (item.girdleThin && item.girdleThick ? `${item.girdleThin}-${item.girdleThick}` : (item.girdleThin || item.girdleThick || "")),
+                            Crown: getV(["CrownHeight", "crownHeight", "Crown", "Crown_Height", "CrownAngle"]),
+                            Pavilion: getV(["PavillionHeight", "pavilionDepth", "Pavilion", "Pavilion_Depth", "PavilionAngle"]),
+                            Culet: getV(["CuletSize", "culetSize", "Culet", "Culet_Size", "culet"]),
+                            Ratio: getV(["Ratio", "ratio", "Ratio"]),
+                            Fluorescence: getV(["FlrIntens", "fluorescenceIntensity", "Fluorescence", "FluorescenceName", "Fluor", "Fluo"]),
+                            Bgm: getV(["Milkey", "milky", "BGM", "Bgm", "EyeClean"]),
+                            Growth_Type: getV(["CVD_HPHT", "growthType", "Growth_Type", "Growth"]),
+                            Location: getV(["Location", "location", "City", "Country"]),
                             Source: apiConfig.url.trim(),
                         };
+                        return diamond;
                     });
                     
                     allDiamonds = [...allDiamonds, ...mappedItems];

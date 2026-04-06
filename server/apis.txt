@@ -1,8 +1,0 @@
-URL: https://akshar.kodllin.com/apis/api/getStockN?auth_key=zvkwybd3mqru
-Headers: 
-Body: 
-
-URL: https://services.mrmsolitaires.in/api/v1/auth/diamonds/stocklistWithPriceOnly
-Headers: apikey = 'b6a36990-669f-4f2d-940f-9018cc48954a'
-Body: diamondtype = “ALL”
-
