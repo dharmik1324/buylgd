@@ -9,6 +9,7 @@ import DiamondFilterSidebar from "../../components/diamond/DiamndFilterSidebar";
 import { DiamondCardSkeleton } from "../../components/diamond/DiamondCardSkeleton";
 import { AppDiamondDetails } from "./AppDiamondDetails";
 import { ShapeIcon } from "../../components/diamond/DiamondShapeIcons";
+import { normalizeDiamond } from "../../utils/diamondFields";
 
 
 export const PublicInventory = () => {
@@ -129,7 +130,7 @@ export const PublicInventory = () => {
             BUYLGD Diamond <span className={`italic ${accentColor}`}>Inventory</span>
           </motion.h1>
 
-          <div className="flex flex-col items-center mt-6 sm:mt-8 w-full">
+          {/* <div className="flex flex-col items-center mt-6 sm:mt-8 w-full">
             <div className="flex items-center gap-3 mb-6">
               <button
                 onClick={() => setFilters(prev => ({ ...prev, source: prev.source === 'CSV' ? '' : 'CSV' }))}
@@ -189,7 +190,7 @@ export const PublicInventory = () => {
                 );
               })}
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -218,101 +219,101 @@ export const PublicInventory = () => {
                       <DiamondCardSkeleton isDarkMode={isDarkMode} />
                     </motion.div>
                   ))
-                ) : data.map((item, idx) => (
-                  <motion.div
-                    key={item._id || idx}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    whileHover={{ y: -8 }}
-                    onClick={() => handleActionCheck(() => setSelectedDiamond(item))}
-                    className={`group relative aspect-[3/4] rounded-lg sm:rounded-[2.5rem] overflow-hidden cursor-pointer transition-all duration-500 border
+                ) : data.map((rawItem, idx) => {
+                  const item = normalizeDiamond(rawItem);
+                  return (
+                    <motion.div
+                      key={item._id || idx}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      whileHover={{ y: -4 }}
+                      onClick={() => handleActionCheck(() => setSelectedDiamond(item))}
+                      className={`group relative flex flex-col rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 border
                       ${isDarkMode
-                        ? "bg-[#0D0D0D] border-gray-800 hover:border-blue-500/50 shadow-lg shadow-black"
-                        : "bg-slate-100/90 border-slate-200/50 hover:border-blue-200 shadow-md shadow-gray-200/30"
-                      }`}
-                  >
-                    {/* Image Section (65%) */}
-                    <div className={`h-[65%] w-full relative overflow-hidden flex items-center justify-center pt-0 pl-2 pr-2 transition-colors duration-500
-                      ${isDarkMode ? "bg-gradient-to-br from-[#1A1A1A] to-black" : "bg-gradient-to-br from-slate-50 to-white"}`}>
+                          ? "bg-[#1c1c1c] border-gray-800 hover:border-gray-600 shadow-md shadow-black/50"
+                          : "bg-white border-gray-200 hover:border-gray-300 shadow-sm"
+                        }`}
+                    >
+                      {/* Image Section */}
+                      <div className={`relative w-full aspect-square flex items-center justify-center p-4 transition-colors duration-500
+                      ${isDarkMode ? "bg-gradient-to-br from-[#2a2a2a] to-[#1c1c1c]" : "bg-[#F8F9FA]"}`}>
 
-                      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-500/20 via-transparent to-transparent" />
+                        {/* Checkbox placeholder or Availability Badge */}
+                        <div className="absolute top-3 left-3 z-10">
+                          <span className="bg-white/90 backdrop-blur-sm text-black text-[7px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-widest shadow-sm">
+                            {item.Availability || "IN STOCK"}
+                          </span>
+                        </div>
 
-                      {item.Diamond_Image ? (
-                        <img
-                          src={item.Diamond_Image}
-                          alt={item.Shape}
-                          className={`max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-120 rounded-4xl ${isDarkMode ? "mix-blend-screen drop-shadow-[0_10px_20px_rgba(0,0,0,0.3)]" : "drop-shadow-[0_4px_12px_rgba(0,0,0,0.12)]"}`}
-                        />
-                      ) : (
-                        <ShapeIcon
-                          shape={item.Shape}
-                          className={`w-24 h-24 ${isDarkMode ? "text-gray-800" : "text-gray-100"} transition-transform duration-700 group-hover:scale-110`}
-                        />
-                      )}
+                        {/* Heart Icon (Top Right) */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleActionCheck(() => dispatch(toggleWishlist(item)));
+                          }}
+                          className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-sm transition-all duration-200 cursor-pointer z-10 ${isWishlisted(item._id)
+                            ? "bg-red-500 text-white shadow-md"
+                            : isDarkMode ? "bg-black/40 text-gray-300 hover:text-white" : "bg-white border border-gray-100 text-gray-400 hover:text-gray-800 shadow-sm"
+                            }`}
+                        >
+                          <Heart size={16} fill={isWishlisted(item._id) ? "currentColor" : "none"} />
+                        </button>
 
-                      <div className="absolute top-2 left-2 sm:top-6 sm:left-6">
-                        <span className="bg-white/90 backdrop-blur-sm text-black text-[6px] sm:text-[9px] font-bold px-1.5 py-0.5 sm:px-3 sm:py-1.5 rounded-full uppercase tracking-widest shadow-sm">
-                          {item.Availability || "IN STOCK"}
-                        </span>
+                        {/* Diamond Image */}
+                        {item.Diamond_Image ? (
+                          <img
+                            src={item.Diamond_Image}
+                            alt={item.Shape}
+                            loading="lazy"
+                            className={`w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 ${isDarkMode ? "mix-blend-screen" : "mix-blend-multiply"}`}
+                          />
+                        ) : (
+                          <ShapeIcon
+                            shape={item.Shape}
+                            className={`w-28 h-28 ${isDarkMode ? "text-gray-600" : "text-gray-300"} transition-transform duration-500 group-hover:scale-105`}
+                          />
+                        )}
+
+                        {/* Green Dot Indicator */}
+                        <div className="absolute bottom-3 left-3 w-2.5 h-2.5 bg-green-500 rounded-full border border-white shadow-sm" title="Available"></div>
                       </div>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleActionCheck(() => dispatch(toggleWishlist(item)));
-                        }}
-                        className={`absolute top-2 right-2 sm:top-6 sm:right-6 p-1.5 sm:p-2.5 rounded-full backdrop-blur-sm transition-all duration-200 shadow-sm cursor-pointer ${isWishlisted(item._id)
-                          ? "bg-red-500 text-white"
-                          : "bg-white/90 text-gray-400 hover:text-red-500"
-                          }`}
-                      >
-                        <Heart
-                          size={12}
-                          className="sm:w-4 sm:h-4 w-3 h-3"
-                          fill={isWishlisted(item._id) ? "currentColor" : "none"}
-                        />
-                      </button>
-                    </div>
+                      {/* Content Section */}
+                      <div className={`flex flex-col flex-1 p-4 text-left border-t ${isDarkMode ? "border-gray-800" : "border-gray-50"}`}>
+                        {/* Title Line */}
+                        <h3 className={`text-sm sm:text-base font-bold truncate ${isDarkMode ? "text-gray-100" : "text-[#1a202c]"}`}>
+                          {item.Shape} {item.Weight ? item.Weight.toFixed(2) : '0.00'}ct {item.Color} {item.Clarity}
+                        </h3>
 
-                    <div className="h-[35%] w-full p-1 sm:p-6 flex flex-col justify-between">
-                      <div>
-                        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-0.5 sm:mb-1">
-                          <div className="mb-0.5 xl:mb-0 w-full sm:w-auto">
-                            <p className="text-[7px] sm:text-[10px] font-bold tracking-[0.1em] sm:tracking-[0.2em] uppercase text-blue-500 sm:mb-1 truncate">
-                              {item.Shape}
-                            </p>
-                            <h3 className="text-[10px] sm:text-lg lg:text-xl font-serif font-medium leading-tight truncate">
-                              {item.Weight?.toFixed(2)} CT
-                            </h3>
+                        {/* Subtitle: Cut.Polish.Symmetry / Fluorescence */}
+                        <p className={`text-[11px] sm:text-xs font-semibold mt-1 tracking-wider ${isDarkMode ? "text-gray-500" : "text-[#718096] uppercase"}`}>
+                          {item.Cut ? `${item.Cut.charAt(0)}.` : 'E.'}
+                          {item.Polish ? `${item.Polish.charAt(0)}.` : 'E.'}
+                          {item.Symmetry ? `${item.Symmetry.charAt(0)}.` : '-'} / {item.Fluorescence || 'NONE'}
+                        </p>
+
+                        <div className="flex items-end justify-between mt-auto pt-4">
+                          <div className="flex flex-col">
+                            <span className={`text-sm sm:text-base font-bold ${isDarkMode ? "text-gray-100" : "text-[#718096]"}`}>
+                              {item.Final_Price > 0
+                                ? `$${item.Final_Price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : <span className="">Price on request</span>
+                              }
+                            </span>
+                            <span className={`text-[10px] sm:text-[11px] font-medium mt-0.5 ${isDarkMode ? "text-gray-600" : "text-[#a0aec0]"}`}>
+                              Total Price
+                            </span>
                           </div>
-                          <div className="text-left xl:text-right">
-                            <p className="text-[9px] sm:text-base lg:text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400">
-                              ${Number(item.Final_Price?.toFixed(2)).toLocaleString()}
-                            </p>
+
+                          {/* More options button equivalents or View Details arrow */}
+                          <div className={`p-2 rounded-full transition-all duration-300 group-hover:translate-x-1 ${isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600"}`}>
+                            <ArrowRight className="w-3 h-3" />
                           </div>
                         </div>
-
-                        <div className="flex flex-wrap gap-1 sm:gap-2 text-[7px] sm:text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider sm:tracking-widest mt-0.5 sm:mt-1">
-                          <span>{item.Color}</span>
-                          <span className="text-gray-300 dark:text-gray-700">•</span>
-                          <span>{item.Clarity}</span>
-                          <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">•</span>
-                          <span className="hidden sm:inline">{item.Cut || "Ideal"}</span>
-                        </div>
                       </div>
-
-                      <div className="flex items-center justify-between group/btn pt-1 sm:pt-3 border-t border-gray-100 dark:border-gray-800 mt-1 sm:mt-0">
-                        <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-gray-500 group-hover/btn:text-blue-500 transition-colors">
-                          <span className="hidden sm:inline">View </span>Details
-                        </span>
-                        <div className={`p-1 sm:p-2 rounded-full transition-all duration-300 group-hover/btn:translate-x-1 ${isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-600"}`}>
-                          <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
             </div>
 

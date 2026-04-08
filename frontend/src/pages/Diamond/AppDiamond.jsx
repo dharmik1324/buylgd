@@ -271,95 +271,97 @@ export const AppDiamond = () => {
                   // Normalize field aliases so image/price/certificate always resolve
                   const item = normalizeDiamond(rawItem);
                   return (
-                  <motion.div
-                    key={item._id || idx}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    whileHover={{ y: -4 }}
-                    onClick={() => setSelectedDiamond(item)}
-                    className={`group relative flex flex-col rounded-xl overflow-hidden cursor-pointer transition-all duration-300 border
-                      ${isDarkMode
-                        ? "bg-[#1c1c1c] border-gray-800 hover:border-gray-600 shadow-md shadow-black/50"
-                        : "bg-white border-gray-200 hover:border-gray-300 shadow-sm"
-                      }`}
-                  >
-                    {/* Image Section */}
-                    <div className={`relative w-full aspect-square flex items-center justify-center p-1 sm:p-4 transition-colors duration-500
-                      ${isDarkMode ? "bg-gradient-to-br from-[#2a2a2a] to-[#1c1c1c]" : "bg-gradient-to-br from-gray-50 to-[#F8F9FA]"}`}>
+                    <motion.div
+                      key={item._id || idx}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      whileHover={{ y: -4 }}
+                      onClick={() => setSelectedDiamond(item)}
+                      className={`group relative flex flex-col rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 border
+                        ${isDarkMode
+                          ? "bg-[#1c1c1c] border-gray-800 hover:border-gray-600 shadow-md shadow-black/50"
+                          : "bg-white border-gray-200 hover:border-gray-300 shadow-sm"
+                        }`}
+                    >
+                      {/* Image Section */}
+                      <div className={`relative w-full aspect-square flex items-center justify-center p-4 transition-colors duration-500
+                        ${isDarkMode ? "bg-gradient-to-br from-[#2a2a2a] to-[#1c1c1c]" : "bg-[#F8F9FA]"}`}>
 
-                      {/* Checkbox (Top Left) */}
-                      <div className="absolute top-1 left-1 sm:top-3 sm:left-3 z-10">
-                        <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onClick={(e) => e.stopPropagation()} />
-                      </div>
-
-                      {/* Heart Icon (Top Right) */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); dispatch(toggleWishlist(item)); }}
-                        className={`absolute top-1 right-1 sm:top-3 sm:right-3 p-1 rounded-full backdrop-blur-sm transition-all duration-200 cursor-pointer z-10 ${isWishlisted(item._id)
-                          ? "bg-red-500 text-white shadow-md"
-                          : isDarkMode ? "bg-black/40 text-gray-300 hover:text-white" : "bg-white/60 text-gray-500 hover:text-gray-800 shadow-sm"
-                          }`}
-                      >
-                        <Heart
-                          size={14}
-                          className="w-4 h-4"
-                          fill={isWishlisted(item._id) ? "currentColor" : "none"}
-                        />
-                      </button>
-
-                      {/* Diamond Image — resolved from all known key aliases */}
-                      {item.Diamond_Image ? (
-                        <img
-                          src={item.Diamond_Image}
-                          alt={item.Shape}
-                          loading="lazy"
-                          className={`w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 ${isDarkMode ? "mix-blend-screen" : "mix-blend-multiply"}`}
-                        />
-                      ) : (
-                        <ShapeIcon
-                          shape={item.Shape}
-                          className={`w-20 h-20 ${isDarkMode ? "text-gray-600" : "text-gray-300"} transition-transform duration-500 group-hover:scale-105`}
-                        />
-                      )}
-
-                      {/* Green Dot Indicator */}
-                      <div className="absolute bottom-3 left-3 w-2.5 h-2.5 bg-green-500 rounded-full border border-white shadow-sm" title="Available"></div>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className={`flex flex-col flex-1 p-1 sm:p-4 text-left border-t ${isDarkMode ? "border-gray-800" : "border-gray-100"}`}>
-                      {/* Title Line */}
-                      <h3 className={`text-xs sm:text-sm font-semibold truncate ${isDarkMode ? "text-gray-100" : "text-gray-800"}`}>
-                        {item.Shape} {item.Weight ? item.Weight.toFixed(2) : '0.00'}ct {item.Color} {item.Clarity}
-                      </h3>
-
-                      {/* Subtitle: Cut.Polish.Symmetry / Fluorescence */}
-                      <p className={`text-[10px] sm:text-xs mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                        {item.Cut && item.Cut !== '-' ? `${item.Cut.charAt(0)}.` : '-.'}
-                        {item.Polish ? `${item.Polish.charAt(0)}.` : '-.'}
-                        {item.Symmetry ? item.Symmetry.charAt(0) : '-'} / {item.Fluorescence}
-                      </p>
-
-                      <div className="flex items-end justify-between mt-auto pt-3">
-                        <div className="flex flex-col">
-                          <span className={`text-sm sm:text-base font-bold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
-                            {item.Final_Price > 0
-                              ? `$${item.Final_Price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : <span className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Price on request</span>
-                            }
-                          </span>
-                          <span className={`text-[9px] sm:text-[10px] ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
-                            Total Price
-                          </span>
+                        {/* Checkbox (Top Left) */}
+                        <div className="absolute top-3 left-3 z-10">
+                          <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onClick={(e) => e.stopPropagation()} />
                         </div>
 
-                        {/* More options button */}
-                        <button className={`w-8 h-6 flex items-center justify-center rounded-md ${isDarkMode ? "bg-blue-900/50 text-blue-400" : "bg-blue-100 text-blue-500 hover:bg-blue-200"} transition-colors`} onClick={(e) => { e.stopPropagation(); setSelectedDiamond(item); }}>
-                          <span className="text-xl leading-none -mt-2">...</span>
+                        {/* Heart Icon (Top Right) */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); dispatch(toggleWishlist(item)); }}
+                          className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-sm transition-all duration-200 cursor-pointer z-10 ${isWishlisted(item._id)
+                            ? "bg-red-500 text-white shadow-md"
+                            : isDarkMode ? "bg-black/40 text-gray-300 hover:text-white" : "bg-white border border-gray-100 text-gray-400 hover:text-gray-800 shadow-sm"
+                            }`}
+                        >
+                          <Heart
+                            size={16}
+                            fill={isWishlisted(item._id) ? "currentColor" : "none"}
+                          />
                         </button>
+
+                        {/* Diamond Image */}
+                        {item.Diamond_Image ? (
+                          <img
+                            src={item.Diamond_Image}
+                            alt={item.Shape}
+                            loading="lazy"
+                            className={`w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 ${isDarkMode ? "mix-blend-screen" : "mix-blend-multiply"}`}
+                          />
+                        ) : (
+                          <ShapeIcon
+                            shape={item.Shape}
+                            className={`w-28 h-28 ${isDarkMode ? "text-gray-600" : "text-gray-300"} transition-transform duration-500 group-hover:scale-105`}
+                          />
+                        )}
+
+                        {/* Green Dot Indicator */}
+                        <div className="absolute bottom-3 left-3 w-2.5 h-2.5 bg-green-500 rounded-full border border-white shadow-sm" title="Available"></div>
                       </div>
-                    </div>
-                  </motion.div>
+
+                      {/* Content Section */}
+                      <div className={`flex flex-col flex-1 p-4 text-left border-t ${isDarkMode ? "border-gray-800" : "border-gray-50"}`}>
+                        {/* Title Line */}
+                        <h3 className={`text-sm sm:text-base font-bold truncate ${isDarkMode ? "text-gray-100" : "text-[#1a202c]"}`}>
+                          {item.Shape} {item.Weight ? item.Weight.toFixed(2) : '0.00'}ct {item.Color} {item.Clarity}
+                        </h3>
+
+                        {/* Subtitle: Cut.Polish.Symmetry / Fluorescence */}
+                        <p className={`text-[11px] sm:text-xs font-semibold mt-1 tracking-wider ${isDarkMode ? "text-gray-500" : "text-[#718096] uppercase"}`}>
+                          {item.Cut ? `${item.Cut.charAt(0)}.` : 'E.'}
+                          {item.Polish ? `${item.Polish.charAt(0)}.` : 'E.'}
+                          {item.Symmetry ? `${item.Symmetry.charAt(0)}.` : '-'} / {item.Fluorescence || 'NONE'}
+                        </p>
+
+                        <div className="flex items-end justify-between mt-auto pt-4">
+                          <div className="flex flex-col">
+                            <span className={`text-sm sm:text-base font-bold ${isDarkMode ? "text-gray-100" : "text-[#718096]"}`}>
+                              {item.Final_Price > 0
+                                ? `$${item.Final_Price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : <span className="">Price on request</span>
+                              }
+                            </span>
+                            <span className={`text-[10px] sm:text-[11px] font-medium mt-0.5 ${isDarkMode ? "text-gray-600" : "text-[#a0aec0]"}`}>
+                              Total Price
+                            </span>
+                          </div>
+
+                          {/* More options button */}
+                          <button 
+                            className={`w-10 h-8 flex items-center justify-center rounded-lg transition-colors ${isDarkMode ? "bg-blue-900/50 text-blue-400 hover:bg-blue-800/60" : "bg-blue-50 text-blue-500 hover:bg-blue-100"}`} 
+                            onClick={(e) => { e.stopPropagation(); setSelectedDiamond(item); }}
+                          >
+                            <span className="text-xl font-bold tracking-widest leading-none -mt-1">...</span>
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
                   );
                 })}
               </AnimatePresence>
@@ -398,4 +400,3 @@ export const AppDiamond = () => {
 };
 
 export default AppDiamond;
-
