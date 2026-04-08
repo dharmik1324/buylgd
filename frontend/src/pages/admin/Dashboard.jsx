@@ -60,7 +60,8 @@ export const Dashboard = () => {
     dispatch(fetchNotifications({ page: 1, limit: 10 }));
   }, [dispatch]);
 
-  const [selectedShape, setSelectedShape] = useState("Round");
+  const [selectedShape, setSelectedShape] = useState("");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
@@ -136,7 +137,20 @@ export const Dashboard = () => {
     return profiles;
   }, [metadata.shapeStats]);
 
-  const activeProfile = shapeDataProfiles[selectedShape] || Object.values(shapeDataProfiles)[0] || { prices: [0, 0, 0, 0, 0, 0, 0], color: "#3b82f6" };
+  // Auto-select first available shape when data loads
+  useEffect(() => {
+    const shapes = Object.keys(shapeDataProfiles);
+    if (shapes.length > 0 && (!selectedShape || !shapeDataProfiles[selectedShape])) {
+      setSelectedShape(shapes[0]);
+    }
+  }, [shapeDataProfiles]);
+
+  const activeProfile = useMemo(() => {
+    const profile = shapeDataProfiles[selectedShape] || Object.values(shapeDataProfiles)[0] || { prices: [0, 0, 0, 0, 0, 0, 0], color: "#3b82f6" };
+    console.log("[DASHBOARD] Metadata:", metadata);
+    console.log("[DASHBOARD] Active Profile for", selectedShape, ":", profile);
+    return profile;
+  }, [shapeDataProfiles, selectedShape, metadata]);
 
   const chartData = useMemo(() => {
     const months = ["Jan", "Mar", "May", "Jul", "Sep", "Nov", "Dec"];
@@ -180,7 +194,7 @@ export const Dashboard = () => {
 
           <button
             onClick={() => {
-              dispatch(fetchDiamonds({ page: 1, limit: 12 }));
+              dispatch(fetchDiamonds({ page: 1, limit: 12, includeStats: true }));
               dispatch(fetchUsers());
               dispatch(fetchNotifications({ page: 1, limit: 10 }));
             }}
@@ -389,7 +403,21 @@ export const Dashboard = () => {
           <div className="space-y-3 overflow-y-auto max-h-[420px] pr-2 no-scrollbar">
             {loading ? (
               <div className="space-y-3">
-                {[1, 2, 3, 4].map(i => <div key={i} className="h-16 w-full bg-slate-800 animate-pulse rounded-xl" />)}
+                {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-16 w-full animate-pulse rounded-xl" style={{backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9'}} />)}
+              </div>
+            ) : Object.keys(shapeDataProfiles).length === 0 ? (
+              <div className="flex flex-col items-center py-12 text-center">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                  <Award size={24} className="text-slate-500" />
+                </div>
+                <p className={`text-sm font-normal ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>No shape data available</p>
+                <p className="text-xs text-slate-500 mt-1">Sync or import inventory to populate analytics</p>
+                <button
+                  onClick={() => dispatch(fetchDiamonds({ page: 1, limit: 12, includeStats: true }))}
+                  className="mt-4 text-xs text-blue-400 border border-blue-500/30 px-4 py-2 rounded-lg hover:bg-blue-500/10 transition-colors"
+                >
+                  Refresh Data
+                </button>
               </div>
             ) : (
               Object.entries(shapeDataProfiles).map(([shape, profile]) => {

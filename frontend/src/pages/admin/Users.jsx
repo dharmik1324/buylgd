@@ -7,11 +7,12 @@ import {
     Globe, Key, Lock, Unlock, Copy, Check, Clock, RefreshCcw
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { fetchUsers, deleteUser, updateUser, createUser, approveUser, toggleApiAccess, clearSessions } from "../../store/userSlice";
+import { fetchUsers, deleteUser, updateUser, createUser, approveUser, toggleApiAccess, clearSessions, addRealtimeUser } from "../../store/userSlice";
 import { RxCross2 } from "react-icons/rx";
 import Select from "react-select";
 import { fetchInventoryApis } from "../../store/inventoryApiSlice";
 import { getCountryOptions, getStateOptions, getCityOptions } from "../../utils/locationHelper";
+import { socket } from "../../socket";
 
 const adminSelectStyles = (isDarkMode) => ({
     control: (base, state) => ({
@@ -104,6 +105,22 @@ export const Users = () => {
 
     useEffect(() => {
         dispatch(fetchUsers());
+    }, [dispatch]);
+
+    // Real-time: listen for newly registered users and add them instantly
+    useEffect(() => {
+        const handleNewUser = (newUser) => {
+            dispatch(addRealtimeUser(newUser));
+            toast.info(
+                `🆕 New registration: ${newUser.name} (${newUser.email})`,
+                { autoClose: 6000 }
+            );
+        };
+
+        socket.on("new-user", handleNewUser);
+        return () => {
+            socket.off("new-user", handleNewUser);
+        };
     }, [dispatch]);
 
     const handleDelete = (id) => {

@@ -16,12 +16,14 @@ const getDiamondsData = async (req, res) => {
                 markup = user.priceMarkup || 0;
             }
         }
-        const markupFactor = 1 + (markup / 100);
 
-        // Fetch ALL currently active API URLs for strict source filtering
         const activeApis = await InventoryApi.find({ isActive: true }).select('url');
         const activeApiUrls = activeApis.map(api => api.url);
-        console.log('DEBUG: Found', activeApis.length, 'active APIs. URLs:', activeApiUrls);
+        
+        const markupSearch = Number(req.query.markup) || 0;
+        const totalMarkup = markup + markupSearch;
+        const markupFactor = 1 + (totalMarkup / 100);
+        console.log(`[INVENTORY] Fetching for ${req.user?.email || 'Public'}. Markup: ${totalMarkup}%`);
 
         let {
             page = 1,
@@ -288,7 +290,7 @@ const getDiamondsData = async (req, res) => {
 
         // 3. Metadata
         let metadata = null;
-        if (page === 1) {
+        if (safePage === 1) {
             try {
                 // Get unified distinct values using aggregation and $unionWith
                 // Metadata pipelines based on relaxed source filtering
@@ -345,54 +347,47 @@ const getDiamondsData = async (req, res) => {
                 const rangeValues = resRanges[0] || { minPrice: 0, maxPrice: 100000, minCarat: 0, maxCarat: 20 };
 
                 let statsData = { totalValue: 0, shapeStats: [] };
-                if (includeStats === "true") {
-                    // Calculate stats from both collections separately and merge to handle empty collections correctly
-                    const [mainStats, csvStats] = await Promise.all([
-                        Diamond.aggregate([
-                            { $match: sourceMatch },
-                            normalizeMain,
-                            {
-                                $group: {
-
-                                    _id: "$Shape",
-                                    count: { $sum: 1 },
-                                    totalValue: { $sum: "$Final_Price" }
-                                }
+                if (includeStats === "true" || includeStats === true) {
+                    console.log(`[STATS] Calculating unified statistics...`);
+                    
+                    const statsPipeline = [
+                        { $match: sourceMatch },
+                        normalizeMain,
+                        {
+                            $unionWith: {
+                                coll: "csvdiamonds",
+                                pipeline: [normalizeCsv]
                             }
-                        ]),
-                        CsvDiamond.aggregate([
-                            normalizeCsv,
-                            {
-                                $group: {
-                                    _id: "$Shape",
-                                    count: { $sum: 1 },
-                                    totalValue: { $sum: "$Final_Price" }
-                                }
+                        },
+                        {
+                            $group: {
+                                _id: "$Shape",
+                                count: { $sum: 1 },
+                                totalValue: { $sum: "$Final_Price" }
                             }
-                        ])
-                    ]);
+                        }
+                    ];
 
-                    const mergedMap = new Map();
+                    const statsResult = await Diamond.aggregate(statsPipeline);
+                    console.log(`[STATS] Raw Aggregate Result:`, JSON.stringify(statsResult.slice(0, 3)));
+
                     let grandTotal = 0;
-
-                    [...mainStats, ...csvStats].forEach(stat => {
-                        const shape = stat._id || "UNKNOWN";
-                        const current = mergedMap.get(shape) || { count: 0, totalValue: 0 };
-                        mergedMap.set(shape, {
-                            count: current.count + stat.count,
-                            totalValue: current.totalValue + stat.totalValue
-                        });
-                        grandTotal += stat.totalValue;
+                    const shapeStats = statsResult.map(res => {
+                        const val = res.totalValue || 0;
+                        grandTotal += val;
+                        return {
+                            _id: res._id || "UNKNOWN",
+                            count: res.count,
+                            avgPrice: res.count > 0 ? val / res.count : 0
+                        };
                     });
 
                     statsData = {
                         totalValue: Math.round(grandTotal),
-                        shapeStats: Array.from(mergedMap.entries()).map(([shape, data]) => ({
-                            _id: shape,
-                            count: data.count,
-                            avgPrice: data.count > 0 ? data.totalValue / data.count : 0
-                        }))
+                        shapeStats
                     };
+                    
+                    console.log(`[STATS] Refactored Stats Result: Total Value $${statsData.totalValue}, Shapes: ${statsData.shapeStats.length}`);
                 }
 
                 metadata = {
@@ -402,12 +397,12 @@ const getDiamondsData = async (req, res) => {
                     priceMin: Math.floor(rangeValues.minPrice || 0),
                     priceMax: Math.ceil(rangeValues.maxPrice || 100000),
                     caratMin: Number((rangeValues.minCarat || 0).toFixed(2)),
-                    caratMax: Number((rangeValues.maxCarat || 10).toFixed(2)),
+                    maxCarat: Number((rangeValues.maxCarat || 10).toFixed(2)),
                     ...statsData
                 };
             } catch (metaErr) {
-                console.warn("Metadata error:", metaErr);
-                metadata = { shapes: [], colors: [], clarities: [] };
+                console.error("[META_ERROR] Global metadata/stats failed:", metaErr.message);
+                if (!metadata) metadata = { shapes: [], colors: [], clarities: [] };
             }
         }
 

@@ -113,7 +113,15 @@ const userSlice = createSlice({
         loading: false,
         error: null,
     },
-    reducers: {},
+    reducers: {
+        addRealtimeUser: (state, action) => {
+            // Prepend new user to top of list (newest first), avoid duplicates
+            const exists = state.users.some(u => u._id === action.payload._id);
+            if (!exists) {
+                state.users = [action.payload, ...state.users];
+            }
+        }
+    },
     extraReducers: (builder) => {
         builder
             // Fetch Users
@@ -203,4 +211,5 @@ const userSlice = createSlice({
     },
 });
 
+export const { addRealtimeUser } = userSlice.actions;
 export default userSlice.reducer;

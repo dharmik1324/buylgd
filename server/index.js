@@ -202,6 +202,7 @@ app.use("/api", externalRoutes);
 
     const existing = await User.findOne({ email: adminEmail });
     if (!existing) {
+      // Admin doesn't exist yet — create with default credentials
       const hashed = await bcrypt.hash(adminPassword, 10);
       await User.create({
         name: "Administrator",
@@ -210,15 +211,15 @@ app.use("/api", externalRoutes);
         role: "admin",
         isApproved: true,
       });
-      console.log(`Default admin created (${adminEmail})`);
+      console.log(`✅ Default admin created (${adminEmail}) with password from .env`);
     } else {
-      // Ensure the default admin always has the latest password from ENV
-      const hashed = await bcrypt.hash(adminPassword, 10);
-      existing.password = hashed;
-      existing.role = "admin";
-      existing.isApproved = true;
-      await existing.save();
-      console.log(`Default admin credentials synced (${adminEmail})`);
+      // Admin already exists — only ensure role & approval are correct.
+      // NEVER overwrite the password here (it resets on every nodemon restart).
+      let changed = false;
+      if (existing.role !== "admin") { existing.role = "admin"; changed = true; }
+      if (!existing.isApproved) { existing.isApproved = true; changed = true; }
+      if (changed) await existing.save();
+      console.log(`✅ Default admin verified (${adminEmail}) — password preserved as-is`);
     }
     } catch (err) {
       console.error("Error ensuring default admin:", err.message || err);

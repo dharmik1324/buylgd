@@ -34,6 +34,14 @@ const register = async (req, res) => {
 
         await newUser.save();
 
+        // --- REAL-TIME: Push new user to admin panel instantly ---
+        if (global.io) {
+            const userPayload = newUser.toObject();
+            delete userPayload.password;
+            global.io.to("admins").emit("new-user", userPayload);
+            console.log(`[SOCKET] Emitted 'new-user' event for ${normalizedEmail}`);
+        }
+
         // Create persisted notification and emit via socket (Background)
         createNotification({
             title: "New User Registration",
