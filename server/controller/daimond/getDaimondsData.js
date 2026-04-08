@@ -51,11 +51,11 @@ const getDiamondsData = async (req, res) => {
         if (!clarities && clarity) clarities = clarity;
         if (!cuts && cut) cuts = cut;
         
-        const srcUpper = (source || "").toUpperCase();
+        const srcUpper = (source || "").trim().toUpperCase();
 
-        page = Math.max(1, parseInt(page) || 1);
-        limit = Math.max(1, parseInt(limit) || 12);
-        const skip = (page - 1) * limit;
+        const safePage = Math.max(1, parseInt(page) || 1);
+        const safeLimit = Math.max(1, parseInt(limit) || 12);
+        const skip = (safePage - 1) * safeLimit;
 
         // Pre-normalization stage for both collections
         const normalizeMain = {
@@ -65,12 +65,17 @@ const getDiamondsData = async (req, res) => {
                 Final_Price: { 
                     $round: [
                         { $multiply: [
-                            { $toDouble: { 
-                                $cond: [
-                                    { $or: [{ $eq: ["$Final_Price", 0] }, { $eq: ["$Final_Price", null] }] },
-                                    { $ifNull: ["$SaleAmt", "$Price", 0] },
-                                    "$Final_Price"
-                                ]
+                            { $convert: { 
+                                input: { 
+                                    $cond: [
+                                        { $or: [{ $eq: ["$Final_Price", 0] }, { $eq: ["$Final_Price", null] }] },
+                                        { $ifNull: ["$SaleAmt", "$Price", 0] },
+                                        "$Final_Price"
+                                    ]
+                                }, 
+                                to: "double", 
+                                onError: 0, 
+                                onNull: 0 
                             } },
                             markupFactor
                         ] },
@@ -80,19 +85,24 @@ const getDiamondsData = async (req, res) => {
                 Price_Per_Carat: { 
                     $round: [
                         { $multiply: [
-                            { $toDouble: { 
-                                $cond: [
-                                    { $or: [{ $eq: ["$Price_Per_Carat", 0] }, { $eq: ["$Price_Per_Carat", null] }] },
-                                    { $ifNull: ["$SaleRate", "$Rate", 0] },
-                                    "$Price_Per_Carat"
-                                ]
+                            { $convert: { 
+                                input: { 
+                                    $cond: [
+                                        { $or: [{ $eq: ["$Price_Per_Carat", 0] }, { $eq: ["$Price_Per_Carat", null] }] },
+                                        { $ifNull: ["$SaleRate", "$Rate", 0] },
+                                        "$Price_Per_Carat"
+                                    ]
+                                }, 
+                                to: "double", 
+                                onError: 0, 
+                                onNull: 0 
                             } },
                             markupFactor
                         ] },
                         2
                     ]
                 },
-                Weight: { $toDouble: { $ifNull: ["$Weight", 0] } },
+                Weight: { $convert: { input: { $ifNull: ["$Weight", 0] }, to: "double", onError: 0, onNull: 0 } },
                 Stock_No: { $ifNull: ["$Stone_NO", "$Stock_No", "$Stock_ID", "$Stock"] },
                 Certificate_No: { $ifNull: ["$Lab_Report_No", "$Certificate_No", "$Lab Report No"] },
                 Color: { $ifNull: ["$Color", "$color"] },
@@ -128,7 +138,7 @@ const getDiamondsData = async (req, res) => {
                 Final_Price: { 
                     $round: [
                         { $multiply: [
-                            { $toDouble: { $ifNull: ["$Price", "$Final_Price", "$SaleAmt", 0] } },
+                            { $convert: { input: { $ifNull: ["$Price", "$Final_Price", "$SaleAmt", 0] }, to: "double", onError: 0, onNull: 0 } },
                             markupFactor
                         ] },
                         2
@@ -137,7 +147,7 @@ const getDiamondsData = async (req, res) => {
                 Price_Per_Carat: { 
                     $round: [
                         { $multiply: [
-                            { $toDouble: { $ifNull: ["$Price_Per_Carat", "$Rate", 0] } },
+                            { $convert: { input: { $ifNull: ["$Price_Per_Carat", "$Rate", 0] }, to: "double", onError: 0, onNull: 0 } },
                             markupFactor
                         ] },
                         2
@@ -192,13 +202,14 @@ const getDiamondsData = async (req, res) => {
         }
 
         // --- SOURCE FILTERING LOGIC ---
-        // Relaxed: Show all data unless specifically filtered by source
         let sourceMatch = {};
-        if (srcUpper === "API" && activeApiUrls.length > 0) {
-            sourceMatch = { Source: { $in: activeApiUrls } };
-        } else if (srcUpper && srcUpper !== "CSV" && srcUpper !== "API") {
+        if (srcUpper === "API") {
+            // If strictly API requested, we can filter by active APIs if preferred, 
+            // but for admin view, we usually want all NON-CSV sources.
+            sourceMatch = { Source: { $ne: "CSV" } };
+        } else if (srcUpper && srcUpper !== "CSV") {
             // Specific source URL provided (or name)
-            sourceMatch = { Source: source };
+            sourceMatch = { Source: { $regex: source, $options: "i" } };
         }
 
         // 1. Get Totals
@@ -268,10 +279,10 @@ const getDiamondsData = async (req, res) => {
         dataPipeline.push(
             { $sort: sortStage },
             { $skip: skip },
-            { $limit: limit }
+            { $limit: safeLimit }
         );
 
-        const data = (source.toUpperCase() === "CSV")
+        const data = (srcUpper === "CSV")
             ? await CsvDiamond.aggregate(dataPipeline)
             : await Diamond.aggregate(dataPipeline);
 
@@ -404,10 +415,10 @@ const getDiamondsData = async (req, res) => {
             success: true,
             data,
             pagination: {
-                currentPage: page,
-                totalPages: Math.ceil(total / limit),
+                currentPage: safePage,
+                totalPages: Math.ceil(total / safeLimit),
                 totalDiamonds: total,
-                limit
+                limit: safeLimit
             },
             metadata
         });
@@ -776,12 +787,17 @@ const getPublicInventory = async (req, res) => {
                 source: "API",
                 Shape: { $toUpper: { $trim: { input: { $ifNull: ["$Shape", "$SHAPE", ""] } } } },
                 Final_Price: { 
-                    $toDouble: { 
-                        $cond: [
-                             { $or: [{ $eq: ["$Final_Price", 0] }, { $eq: ["$Final_Price", null] }] },
-                             { $ifNull: ["$SaleAmt", "$Price", 0] },
-                             "$Final_Price"
-                        ]
+                    $convert: { 
+                        input: { 
+                            $cond: [
+                                { $or: [{ $eq: ["$Final_Price", 0] }, { $eq: ["$Final_Price", null] }] },
+                                { $ifNull: ["$SaleAmt", "$Price", 0] },
+                                "$Final_Price"
+                            ]
+                        }, 
+                        to: "double", 
+                        onError: 0, 
+                        onNull: 0 
                     } 
                 },
                 Weight: { $toDouble: { $ifNull: ["$Weight", 0] } },
@@ -818,8 +834,8 @@ const getPublicInventory = async (req, res) => {
             $addFields: {
                 source: "CSV",
                 Shape: { $toUpper: { $trim: { input: { $ifNull: ["$Shape", "$SHAPE", ""] } } } },
-                Final_Price: { $toDouble: { $ifNull: ["$Price", "$Final_Price", "$SaleAmt", 0] } },
-                Weight: { $toDouble: { $ifNull: ["$Weight", 0] } },
+                Final_Price: { $convert: { input: { $ifNull: ["$Price", "$Final_Price", "$SaleAmt", 0] }, to: "double", onError: 0, onNull: 0 } },
+                Weight: { $convert: { input: { $ifNull: ["$Weight", 0] }, to: "double", onError: 0, onNull: 0 } },
                 Stock_No: { $ifNull: ["$Stock_ID", "$Stock_No", "$Stock"] },
                 Certificate_No: { $ifNull: ["$Certificate_No", "$Lab Report No"] },
                 Color: { $ifNull: ["$Color", "$color"] },
@@ -863,15 +879,13 @@ const getPublicInventory = async (req, res) => {
             ...(Object.keys(priceFilter).length ? { Final_Price: priceFilter } : {})
         };
 
-        if (source) {
-            finalMatch.source = source.toUpperCase();
-        }
+        const srcUpper = (source || "").trim().toUpperCase();
 
         // 1. Get Totals
         const countPipeline = [];
-        if (source.toUpperCase() === "CSV") {
+        if (srcUpper === "CSV") {
             countPipeline.push(normalizeCsv, { $match: finalMatch });
-        } else if (source.toUpperCase() === "API") {
+        } else if (srcUpper === "API") {
             countPipeline.push(normalizeMain, { $match: finalMatch });
         } else {
             countPipeline.push(
@@ -890,7 +904,7 @@ const getPublicInventory = async (req, res) => {
         }
         countPipeline.push({ $count: "total" });
 
-        const countResult = (source.toUpperCase() === "CSV") 
+        const countResult = (srcUpper === "CSV") 
             ? await CsvDiamond.aggregate(countPipeline)
             : await Diamond.aggregate(countPipeline);
         const total = countResult[0]?.total || 0;
@@ -904,12 +918,12 @@ const getPublicInventory = async (req, res) => {
         else sortStage.createdAt = -1;
 
         const dataPipeline = [];
-        if (source.toUpperCase() === "CSV") {
+        if (srcUpper === "CSV") {
             dataPipeline.push(
                 normalizeCsv,
                 { $match: finalMatch }
             );
-        } else if (source.toUpperCase() === "API") {
+        } else if (srcUpper === "API") {
             dataPipeline.push(
                 normalizeMain,
                 { $match: finalMatch }
@@ -948,7 +962,7 @@ const getPublicInventory = async (req, res) => {
             }
         );
 
-        const diamonds = (source.toUpperCase() === "CSV")
+        const diamonds = (srcUpper === "CSV")
             ? await CsvDiamond.aggregate(dataPipeline)
             : await Diamond.aggregate(dataPipeline);
 

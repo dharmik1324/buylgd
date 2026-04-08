@@ -2,6 +2,10 @@ const axios = require("axios");
 const Diamond = require("../models/Diamond");
 const InventoryApi = require("../models/InventoryApi");
 
+let isSyncInProgress = false;
+
+const getSyncStatus = () => isSyncInProgress;
+
 /**
  * Smart parser to handle both JSON and plain-text "key=value" or "key: value"
  */
@@ -65,6 +69,12 @@ const findLargestArray = (obj) => {
  * Main sync logic to fetch from all active APIs and refresh the Diamond collection
  */
 const syncInventoryFromApis = async (options = {}) => {
+    if (isSyncInProgress) {
+        console.log("[SYNC_UTIL] Sync already in progress, skipping duplicate request.");
+        return { success: false, message: "Sync already in progress" };
+    }
+    
+    isSyncInProgress = true;
     try {
         const activeApis = await InventoryApi.find({ isActive: true });
         let allDiamonds = [];
@@ -169,7 +179,7 @@ const syncInventoryFromApis = async (options = {}) => {
                                 Diamond_Image: getV(["Stone_Img_url", "imageLink", "Diamond_Image", "Image_Link", "view_image", "ImageURL", "still_image", "Image_URL"]) || autoDiscoverMedia('image'),
                                 Diamond_Video: getV(["Video_url", "videoLink", "Diamond_Video", "Video_Link", "v360", "vdbVideo", "VideoURL", "Video_URL"]) || autoDiscoverMedia('video'),
                                 Certificate_Image: getV(["Certificate_file_url", "certiFile", "Certificate_Image", "Certi_Link", "CertificateURL", "CertiURL", "cert_url"]) || autoDiscoverMedia('cert'),
-                                Availability: getV(["StockStatus", "status", "Availability", "Status"], "In Stock"),
+                                Availability: getV(["StockStatus", "status", "Availability", "Status"], "Available"),
                                 Measurements: getV(["Measurement", "measurements", "Dimensions"]),
                                 Depth: getV(["Total_Depth_Per", "depth", "DepthPer", "Depth_Per", "Depth"]),
                                 table_name: getV(["Table_Diameter_Per", "table", "TablePer", "Table_Name", "Table", "Table_Per"]),
@@ -205,19 +215,47 @@ const syncInventoryFromApis = async (options = {}) => {
             });
             const uniqueDiamonds = Array.from(uniqueDiamondsMap.values());
             
-            console.log(`[SYNC_UTIL] Found ${allDiamonds.length} items, reduced to ${uniqueDiamonds.length} unique. Replacing data...`);
+            console.log(`[SYNC_UTIL] Found ${allDiamonds.length} items, reduced to ${uniqueDiamonds.length} unique. Using Atomic Replacement...`);
 
-            // 1. DELETE ONLY AFTER SUCCESSFUL FETCH!
-            await Diamond.deleteMany({ Source: { $ne: "CSV" } });
-
-            // 2. Insert new data
+            const mongoose = require("mongoose");
+            const db = mongoose.connection.db;
+            const tempCollName = "diamonds_temp_sync";
+            
+            // 1. Clear temp collection
             try {
-                const result = await Diamond.insertMany(uniqueDiamonds, { ordered: false });
-                insertedCount = result.length;
-                console.log(`[SYNC_UTIL] Bulk insert successful: ${insertedCount} items inserted.`);
+                await db.collection(tempCollName).deleteMany({});
+            } catch (e) {}
+
+            // 2. Insert into temp collection
+            try {
+                console.log(`[SYNC_UTIL] Inserting into temp collection...`);
+                // Process in smaller batches for the insert to avoid memory/buffer issues
+                const batchSize = 1000;
+                for (let i = 0; i < uniqueDiamonds.length; i += batchSize) {
+                    const batch = uniqueDiamonds.slice(i, i + batchSize);
+                    await db.collection(tempCollName).insertMany(batch, { ordered: false });
+                    console.log(`[SYNC_UTIL] Atomic Sync progressing... ${i + batch.length}/${uniqueDiamonds.length}`);
+                }
+                
+                // 3. RECREATE INDEXES on temp collection before rename
+                console.log(`[SYNC_UTIL] Rebuilding indexes on temp collection...`);
+                await db.collection(tempCollName).createIndex({ Stock_ID: 1 });
+                await db.collection(tempCollName).createIndex({ Shape: 1 });
+                await db.collection(tempCollName).createIndex({ Weight: 1 });
+                await db.collection(tempCollName).createIndex({ Source: 1 });
+                await db.collection(tempCollName).createIndex({ Final_Price: 1 });
+                await db.collection(tempCollName).createIndex({ Availability: 1 });
+                await db.collection(tempCollName).createIndex({ createdAt: -1 });
+
+                // 4. ATOMIC RENAME (Instantly replaces the live collection with NO downtime)
+                // Note: dropTarget: true means it will replace the existing 'diamonds' collection
+                await db.collection(tempCollName).rename("diamonds", { dropTarget: true });
+                
+                insertedCount = uniqueDiamonds.length;
+                console.log(`[SYNC_UTIL] Atomic replacement successful: ${insertedCount} items.`);
             } catch (bulkError) {
-                insertedCount = bulkError.insertedDocs ? bulkError.insertedDocs.length : (bulkError.writeErrors ? uniqueDiamonds.length - bulkError.writeErrors.length : 0);
-                console.warn(`[SYNC_UTIL] Bulk insert partial success: ${insertedCount} items inserted.`);
+                console.error("[SYNC_UTIL] Atomic Replacement failed during insert/rename:", bulkError.message);
+                throw bulkError;
             }
         } else if (activeApis.length > 0) {
              console.warn("[SYNC_UTIL] No diamonds found from any active API. Skipping replace to preserve data.");
@@ -240,7 +278,9 @@ const syncInventoryFromApis = async (options = {}) => {
         fs.appendFileSync('sync_debug.log', `[${new Date().toISOString()}] CRITICAL ERROR: ${error.message}\n`);
         console.error("[SYNC_UTIL] Critical Error:", error);
         throw error;
+    } finally {
+        isSyncInProgress = false;
     }
 };
 
-module.exports = { syncInventoryFromApis };
+module.exports = { syncInventoryFromApis, getSyncStatus };

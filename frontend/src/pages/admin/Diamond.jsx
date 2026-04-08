@@ -7,7 +7,8 @@ import {
     importInventoryFromCSV,
     clearInventory,
     fetchImportedFiles,
-    clearByCSV
+    clearByCSV,
+    fetchSyncStatus
 } from "../../store/diamondSlice";
 import { ShapeIcon } from "../../components/diamond/DiamondShapeIcons";
 import { CircleLoader } from "react-spinners";
@@ -23,7 +24,7 @@ import { InventoryApiModal } from "../../components/admin/InventoryApiModal";
 
 export const Diamond = () => {
     const dispatch = useDispatch();
-    const { data, loading, currentPage, totalPages, totalDiamonds } = useSelector(state => state.diamonds);
+    const { data, loading, currentPage, totalPages, totalDiamonds, isSyncing } = useSelector(state => state.diamonds);
     const isDarkMode = useSelector(state => state.theme?.isDarkMode ?? true);
 
     const pageBg = isDarkMode ? "bg-[#0B1219] text-slate-300" : "bg-slate-50 text-slate-700";
@@ -81,10 +82,33 @@ export const Diamond = () => {
 
     const stats = useMemo(() => [
         { label: "Total Inventory", value: totalDiamonds, icon: <Package size={18} />, color: "text-blue-500", bg: "bg-blue-500/5" },
-        { label: "Available", value: data.filter(d => d.Availability?.toLowerCase() === 'available').length, icon: <CheckCircle2 size={18} />, color: "text-emerald-400", bg: "bg-emerald-500/5" },
-        { label: "Reserved", value: data.filter(d => d.Availability?.toLowerCase() === 'reserved').length, icon: <Clock size={18} />, color: "text-amber-400", bg: "bg-amber-500/5" },
+        { label: "Available", value: data.filter(d => ['available', 'in stock'].includes(d.Availability?.toLowerCase())).length, icon: <CheckCircle2 size={18} />, color: "text-emerald-400", bg: "bg-emerald-500/5" },
+        { label: "Reserved", value: data.filter(d => d.Availability?.toLowerCase() === 'reserved' || d.onHold).length, icon: <Clock size={18} />, color: "text-amber-400", bg: "bg-amber-500/5" },
         { label: "Selection", value: selectedIds.length, icon: <BarChart3 size={18} />, color: "text-purple-400", bg: "bg-purple-500/5" },
     ], [data, totalDiamonds, selectedIds]);
+
+    const prevSyncingRef = useRef(isSyncing);
+
+    useEffect(() => {
+        // Trigger initial background sync on mount for "Admin clarification"
+        dispatch(syncInventory());
+
+        // Polling loop for status
+        const interval = setInterval(() => {
+            dispatch(fetchSyncStatus());
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [dispatch]);
+
+    // Handle data refresh when syncing FINISHES
+    useEffect(() => {
+        if (prevSyncingRef.current === true && isSyncing === false) {
+            console.log("[DASHBOARD] Sync finished, refreshing data...");
+            dispatch(fetchDiamonds({ page, limit, search: searchQuery, ...filters }));
+        }
+        prevSyncingRef.current = isSyncing;
+    }, [isSyncing, dispatch, page, limit, searchQuery, filters]);
 
     useEffect(() => {
         dispatch(fetchDiamonds({
@@ -198,8 +222,19 @@ export const Diamond = () => {
                         <span className="text-sm px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 font-bold border border-blue-500/20">
                             {totalDiamonds?.toLocaleString() || 0}
                         </span>
+                        {isSyncing && (
+                            <motion.div 
+                                animate={{ rotate: 360 }} 
+                                transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                                className="text-emerald-500"
+                            >
+                                <RefreshCw size={18} />
+                            </motion.div>
+                        )}
                     </h1>
-                    <p className="text-sm text-slate-500 mt-2 uppercase tracking-widest font-normal">Vault Transaction Monitoring</p>
+                    <p className="text-sm text-slate-500 mt-2 uppercase tracking-widest font-normal">
+                        {isSyncing ? "Vault Synchronization in Progress..." : "Vault Transaction Monitoring"}
+                    </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     <button
@@ -236,11 +271,11 @@ export const Diamond = () => {
                     </button>
                     <button
                         onClick={() => dispatch(syncInventory())}
-                        disabled={loading}
-                        className={`flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-normal uppercase tracking-widest transition-all border border-emerald-500/20 text-emerald-400 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'} disabled:opacity-50`}
+                        disabled={loading || isSyncing}
+                        className={`flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-normal uppercase tracking-widest transition-all border border-emerald-500/20 text-emerald-400 ${isDarkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'} disabled:opacity-50 relative`}
                     >
-                        <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-                        <span>Sync HTTP</span>
+                        <RefreshCw size={16} className={(loading || isSyncing) ? "animate-spin" : ""} />
+                        <span>{isSyncing ? "Syncing..." : "Sync HTTP"}</span>
                     </button>
                     <button
                         onClick={() => setApiSettingsOpen(true)}

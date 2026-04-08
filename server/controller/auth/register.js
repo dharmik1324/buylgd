@@ -23,7 +23,7 @@ const register = async (req, res) => {
         const newUser = new User({
             name,
             companyName,
-            email,
+            email: normalizedEmail,
             password: hashedPassword,
             contact,
             country,

@@ -6,8 +6,11 @@ const {
     updateInventoryApi,
     deleteInventoryApi,
     testFetch,
-    triggerManualSync
+    triggerManualSync,
+    getSyncStatus
 } = require("../controller/admin/inventoryApiController");
+
+router.get("/sync-status", getSyncStatus);
 
 router.get("/apis", getInventoryApis);
 router.post("/apis", createInventoryApi);

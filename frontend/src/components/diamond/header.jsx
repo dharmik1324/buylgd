@@ -53,6 +53,12 @@ export const Header = () => {
   };
 
   const handleInventoryNavigation = () => {
+    // If not logged in, always go straight to inventory to ensure data is "visible anytime"
+    if (!token) {
+      navigate("/inventory");
+      return;
+    }
+
     const hasVisited = localStorage.getItem(`inventoryVisited_${user?._id || 'guest'}`);
     if (hasVisited) {
       navigate(inventoryPath);

@@ -10,7 +10,7 @@ export const CheckAuth = ({ children }) => {
     const isAuthenticated = Boolean(token && user);
 
     if (!isAuthenticated) {
-        if (pathname === "/login" || pathname === "/register" || pathname === "/inventory") {
+        if (pathname === "/login" || pathname === "/register" || pathname === "/inventory" || pathname === "/filter-selection") {
             return children;
         }
         return <Navigate to="/login" replace />;

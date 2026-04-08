@@ -9,13 +9,26 @@ export const syncInventory = createAsyncThunk(
   async (_, { rejectWithValue, dispatch }) => {
     try {
       const res = await api.post("/admin/inventory-api/sync");
-      toast.success(res.data.message || `Inventory sync successful: ${res.data.count} items.`);
-      dispatch(fetchDiamonds({ page: 1, limit: 12 })); // Refresh first page
+      toast.success(res.data.message || `Inventory sync started.`);
+      // We don't dispatch fetchDiamonds here anymore, 
+      // we rely on the finished sync to trigger a refresh or let the user refresh
       return res.data;
     } catch (err) {
       const message = err.response?.data?.message || "Sync failed";
       toast.error(message);
       return rejectWithValue(message);
+    }
+  }
+);
+
+export const fetchSyncStatus = createAsyncThunk(
+  "diamonds/fetchSyncStatus",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get("/admin/inventory-api/sync-status");
+      return res.data.isSyncing;
+    } catch (err) {
+      return rejectWithValue(err.message);
     }
   }
 );
@@ -252,6 +265,7 @@ const diamondSlice = createSlice({
     totalPages: 1,
     totalDiamonds: 0,
     limit: 10,
+    isSyncing: false,
     importedFiles: [],
     metadata: {
       shapes: [],
@@ -434,6 +448,9 @@ const diamondSlice = createSlice({
       })
       .addCase(clearByCSV.rejected, (state) => {
         state.loading = false;
+      })
+      .addCase(fetchSyncStatus.fulfilled, (state, action) => {
+        state.isSyncing = action.payload;
       });
   },
 });

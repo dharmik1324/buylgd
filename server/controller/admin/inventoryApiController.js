@@ -188,11 +188,21 @@ const triggerManualSync = async (req, res) => {
     }
 };
 
+const getSyncStatus = async (req, res) => {
+    try {
+        const { getSyncStatus: getStatus } = require("../../utils/diamondSync");
+        res.status(200).json({ success: true, isSyncing: getStatus() });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getInventoryApis,
     createInventoryApi,
     updateInventoryApi,
     deleteInventoryApi,
     testFetch,
-    triggerManualSync
+    triggerManualSync,
+    getSyncStatus
 };

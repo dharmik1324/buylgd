@@ -56,7 +56,7 @@ function App() {
       <Suspense fallback={<Loader />}>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Navigate to="/inventory" replace />} />
             <Route
               element={
                 <CheckAuth>

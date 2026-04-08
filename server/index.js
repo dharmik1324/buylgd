@@ -115,6 +115,29 @@ app.get("/api/diag/email-status", async (req, res) => {
   res.json(results);
 });
 
+app.get("/api/diag/db-status", async (req, res) => {
+  try {
+    const User = require("./models/User");
+    const Diamond = require("./models/Diamond");
+    const CsvDiamond = require("./models/CsvDiamond");
+    const InventoryApi = require("./models/InventoryApi");
+
+    const stats = {
+      connected: mongoose.connection.readyState === 1,
+      db_name: mongoose.connection.name,
+      host: mongoose.connection.host,
+      diamonds: await Diamond.countDocuments(),
+      csvdiamonds: await CsvDiamond.countDocuments(),
+      users: await User.countDocuments(),
+      apis: await InventoryApi.countDocuments(),
+      activeApis: await InventoryApi.countDocuments({ isActive: true })
+    };
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const csvDiamondRoutes = require("./routes/admin/csv-diamond-routes");
 
 // Protected Admin Routes
@@ -188,11 +211,14 @@ app.use("/api", externalRoutes);
         isApproved: true,
       });
       console.log(`Default admin created (${adminEmail})`);
-    } else if (existing.role !== "admin") {
+    } else {
+      // Ensure the default admin always has the latest password from ENV
+      const hashed = await bcrypt.hash(adminPassword, 10);
+      existing.password = hashed;
       existing.role = "admin";
       existing.isApproved = true;
       await existing.save();
-      console.log(`User ${adminEmail} promoted to admin.`);
+      console.log(`Default admin credentials synced (${adminEmail})`);
     }
     } catch (err) {
       console.error("Error ensuring default admin:", err.message || err);
@@ -219,14 +245,21 @@ app.use("/api", externalRoutes);
     // Added by Antigravity: Ensure data is always fresh on server start and every 1 hour
     const { syncInventoryFromApis } = require("./utils/diamondSync");
     
-    // 1. Initial background sync (5 seconds after startup to allow full connection)
-    setTimeout(() => {
-        console.log("[STARTUP] Triggering initial background sync from external APIs...");
-        syncInventoryFromApis().then(result => {
-            console.log(`[STARTUP] Initial sync successful: ${result.count} items.`);
-        }).catch(err => {
-            console.error("[STARTUP] Initial sync failed:", err.message);
-        });
+        // 1. Initial background sync (After verification - only if empty to save resources)
+    setTimeout(async () => {
+        try {
+            const Diamond = require("./models/Diamond");
+            const count = await Diamond.countDocuments();
+            
+            if (count === 0) {
+                console.log("[STARTUP] Inventory empty. Triggering initial background sync...");
+                await syncInventoryFromApis();
+            } else {
+                console.log(`[STARTUP] Inventory already has ${count} items. Skipping initial sync.`);
+            }
+        } catch (err) {
+            console.error("[STARTUP] Initial check/sync failed:", err.message);
+        }
     }, 5000);
 
     // 2. Periodic sync (Every 1 hour)
