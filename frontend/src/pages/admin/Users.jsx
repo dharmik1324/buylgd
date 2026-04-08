@@ -826,6 +826,8 @@ const EditUserModal = ({ user, onClose }) => {
     const [formData, setFormData] = useState({ 
         ...user, 
         password: "",
+        priceMarkup: Number(user.priceMarkup) || 0,
+        apiPriceAdjustment: Number(user.apiPriceAdjustment) || 0,
         allowedApis: user.allowedApis || [],
         apiFilterMode: user.apiFilterMode || "all",
         apiFilters: user.apiFilters || {}
@@ -899,9 +901,12 @@ const EditUserModal = ({ user, onClose }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const submitData = { ...formData };
-        if (!submitData.password) delete submitData.password;
-        const res = await dispatch(updateUser({ id: user._id, ...submitData }));
+        // Strip reserved/immutable MongoDB fields before sending
+        const { _id, __v, createdAt, updatedAt, sessions, ...cleanData } = formData;
+        if (!cleanData.password) delete cleanData.password; // Don't blank the password
+        cleanData.priceMarkup = Number(cleanData.priceMarkup) || 0;
+        cleanData.apiPriceAdjustment = Number(cleanData.apiPriceAdjustment) || 0;
+        const res = await dispatch(updateUser({ id: user._id, ...cleanData }));
         if (!res.error) onClose();
     };
 
@@ -1038,13 +1043,17 @@ const EditUserModal = ({ user, onClose }) => {
                                 <p className={`text-[10px] font-normal ${isDarkMode ? 'text-emerald-500' : 'text-emerald-600'} uppercase tracking-widest`}>Inventory Management</p>
                                 <p className="text-[9px] text-slate-500 font-normal uppercase mt-1">General Price Multiplier</p>
                             </div>
-                            <div className={`px-3 py-1 rounded-full text-[10px] font-bold ${formData.priceMarkup >= 0 ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
-                                {formData.priceMarkup > 0 ? '+' : ''}{formData.priceMarkup || 0}%
+                            <div className={`px-3 py-1 rounded-full text-[10px] font-bold tabular-nums ${
+                                formData.priceMarkup > 0 ? 'bg-emerald-500/20 text-emerald-500'
+                                : formData.priceMarkup < 0 ? 'bg-red-500/20 text-red-500'
+                                : 'bg-slate-500/20 text-slate-400'
+                            }`}>
+                                {formData.priceMarkup > 0 ? '+' : ''}{formData.priceMarkup}%
                             </div>
                         </div>
 
-                        <div className="pt-2 border-t border-emerald-500/20">
-                            <label className={`text-[10px] font-normal ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'} uppercase tracking-widest mb-2 block`}>
+                        <div className="pt-2 border-t border-emerald-500/20 space-y-3">
+                            <label className={`text-[10px] font-normal ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'} uppercase tracking-widest block`}>
                                 Inventory Price Adjustment
                             </label>
                             <div className="flex items-center gap-3">
@@ -1053,14 +1062,33 @@ const EditUserModal = ({ user, onClose }) => {
                                     min="-50"
                                     max="100"
                                     step="1"
-                                    value={formData.priceMarkup || 0}
+                                    value={formData.priceMarkup}
                                     onChange={(e) => setFormData({ ...formData, priceMarkup: Number(e.target.value) })}
-                                    className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                    className="flex-1 h-1.5 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                                 />
+                                <input
+                                    type="number"
+                                    min="-50"
+                                    max="100"
+                                    step="1"
+                                    value={formData.priceMarkup}
+                                    onChange={(e) => {
+                                        const v = Math.min(100, Math.max(-50, Number(e.target.value) || 0));
+                                        setFormData({ ...formData, priceMarkup: v });
+                                    }}
+                                    className={`w-20 text-center text-sm font-mono font-bold rounded-xl border px-2 py-2 focus:outline-none focus:border-emerald-500 transition-all ${isDarkMode ? 'bg-[#0B1219] border-slate-700 text-emerald-400' : 'bg-white border-emerald-200 text-emerald-700'}`}
+                                />
+                                <span className="text-xs text-slate-500">%</span>
                             </div>
-                            <p className="text-[9px] text-slate-500 mt-2 italic text-center">Applied to all inventory prices visible to this user.</p>
+                            <div className="flex justify-between text-[9px] text-slate-600 font-mono px-0.5">
+                                <span>-50% (Discount)</span>
+                                <span className="text-center">0 (Base)</span>
+                                <span>+100% (Markup)</span>
+                            </div>
+                            <p className="text-[9px] text-slate-500 italic text-center">Applied to all inventory prices visible to this user.</p>
                         </div>
                     </div>
+
 
                     <div className={`flex flex-col space-y-4 p-4 ${isDarkMode ? 'bg-blue-600/10 border-blue-500/20' : 'bg-blue-50 border-blue-100'} rounded-2xl border transition-all`}>
                         <div className="flex items-center justify-between">

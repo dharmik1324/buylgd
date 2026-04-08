@@ -35,7 +35,9 @@ export const updateUser = createAsyncThunk(
     "user/updateUser",
     async (user, { rejectWithValue }) => {
         try {
-            const res = await api.put(`${AUTH_USERS_URL}/${user.id}`, user);
+            const { id, _id, ...updateBody } = user; // strip id fields from body
+            const userId = id || _id;
+            const res = await api.put(`${AUTH_USERS_URL}/${userId}`, updateBody);
             toast.success("User updated successfully");
             return res.data;
         } catch (err) {

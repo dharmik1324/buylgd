@@ -100,15 +100,27 @@ const getExternalDiamonds = async (req, res) => {
 
         const diamonds = await Diamond.find(query).limit(500).lean();
 
-        // Apply price increment/decrement based on apiPriceAdjustment
-        let finalData = diamonds;
-        const adjustment = user.apiPriceAdjustment || 0;
+        // Apply price adjustments:
+        // 1. priceMarkup = general inventory multiplier (always applied to all diamonds for this user)
+        // 2. apiPriceAdjustment = extra adjustment on top (only when API is open)
+        const priceMarkup = Number(user.priceMarkup) || 0;
+        const apiAdjustment = Number(user.apiPriceAdjustment) || 0;
 
-        if (adjustment !== 0) {
-            const multiplier = 1 + (adjustment / 100);
+        // Combined multiplier: base * (1 + priceMarkup/100) * (1 + apiAdjustment/100)
+        const markupMultiplier = 1 + (priceMarkup / 100);
+        const apiMultiplier = 1 + (apiAdjustment / 100);
+        const totalMultiplier = markupMultiplier * apiMultiplier;
+
+        let finalData = diamonds;
+        if (totalMultiplier !== 1) {
             finalData = diamonds.map(d => ({
                 ...d,
-                Final_Price: d.Final_Price ? Number((d.Final_Price * multiplier).toFixed(2)) : d.Final_Price
+                Final_Price: d.Final_Price
+                    ? Number((d.Final_Price * totalMultiplier).toFixed(2))
+                    : d.Final_Price,
+                Price_Per_Carat: d.Price_Per_Carat
+                    ? Number((d.Price_Per_Carat * totalMultiplier).toFixed(2))
+                    : d.Price_Per_Carat,
             }));
         }
 
@@ -117,11 +129,13 @@ const getExternalDiamonds = async (req, res) => {
             company: user.companyName,
             apiFilterMode: user.apiFilterMode,
             appliedFilters: f,
-            queryExecuted: query, // Helpful for debugging
-            priceAdjustmentApplied: `${adjustment > 0 ? '+' : ''}${adjustment}%`,
+            priceMarkupApplied: `${priceMarkup > 0 ? '+' : ''}${priceMarkup}%`,
+            apiAdjustmentApplied: `${apiAdjustment > 0 ? '+' : ''}${apiAdjustment}%`,
+            totalPriceAdjustment: `${Math.round((totalMultiplier - 1) * 100) > 0 ? '+' : ''}${Math.round((totalMultiplier - 1) * 100)}%`,
             total: finalData.length,
             data: finalData
         });
+
 
     } catch (error) {
         console.error("External API Error:", error);

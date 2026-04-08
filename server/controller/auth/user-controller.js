@@ -27,6 +27,17 @@ const updateUser = async (req, res) => {
         const { id } = req.params;
         const updates = { ...req.body };
 
+        // Strip immutable / reserved MongoDB fields to prevent update errors
+        delete updates._id;
+        delete updates.__v;
+        delete updates.createdAt;
+        delete updates.updatedAt;
+        delete updates.sessions; // sessions are managed via the clear-sessions route
+
+        // Ensure numeric fields are stored as proper numbers
+        if (updates.priceMarkup !== undefined) updates.priceMarkup = Number(updates.priceMarkup) || 0;
+        if (updates.apiPriceAdjustment !== undefined) updates.apiPriceAdjustment = Number(updates.apiPriceAdjustment) || 0;
+
         const originalUser = await User.findById(id);
         if (!originalUser) return res.status(404).json({ message: "User not found" });
 
@@ -36,9 +47,13 @@ const updateUser = async (req, res) => {
         if (updates.password) {
             const salt = await bcrypt.genSalt(10);
             updates.password = await bcrypt.hash(updates.password, salt);
+        } else {
+            delete updates.password; // Never blank-out the password
         }
 
-        const user = await User.findByIdAndUpdate(id, updates, { new: true });
+        console.log(`[UPDATE_USER] id=${id} priceMarkup=${updates.priceMarkup} isApproved=${updates.isApproved}`);
+
+        const user = await User.findByIdAndUpdate(id, { $set: updates }, { new: true, runValidators: false });
 
         if (!wasApproved && willBeApproved) {
             await sendApprovalEmail(user.email, user.name);
@@ -49,9 +64,11 @@ const updateUser = async (req, res) => {
 
         res.status(200).json(userResponse);
     } catch (error) {
+        console.error("[UPDATE_USER] Error:", error.message);
         res.status(500).json({ message: "Error updating user", error: error.message });
     }
 };
+
 
 const createUser = async (req, res) => {
     try {
