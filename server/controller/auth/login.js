@@ -17,8 +17,10 @@ const login = async (req, res) => {
     else if (userAgent.includes("Macintosh")) env = "Desktop / macOS";
     else if (userAgent.includes("Linux")) env = "Desktop / Linux";
 
+    const normalizedEmail = email?.toLowerCase().trim();
+
     try {
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: normalizedEmail });
 
         if (!user) {
             await new AccessLog({

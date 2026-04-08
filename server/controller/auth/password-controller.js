@@ -14,11 +14,10 @@ const forgotPassword = async (req, res) => {
             return res.status(400).json({ message: "Email is required" });
         }
 
-        const user = await User.findOne({ email });
+        const normalizedEmail = email.toLowerCase().trim();
+        const user = await User.findOne({ email: normalizedEmail });
         if (!user) {
-            // For security, don't reveal if user exists. 
-            // But usually in internal apps, we might say user not found.
-            return res.status(404).json({ message: "User not found with this email" });
+            return res.status(404).json({ message: "No account found with this email address" });
         }
 
         // Generate 6 digit OTP
@@ -32,9 +31,17 @@ const forgotPassword = async (req, res) => {
         await user.save();
 
         // Send Email (Await for reliability)
-        await sendForgotPasswordEmail(user.email, user.name || "User", otp);
+        const emailResult = await sendForgotPasswordEmail(user.email, user.name || "User", otp);
 
-        return res.status(200).json({ message: "Password reset OTP sent to your email" });
+        if (!emailResult.success) {
+            console.error("FORGOT PASSWORD EMAIL FAILED:", emailResult.error);
+            return res.status(500).json({ 
+                message: "Failed to send reset email. Please try again later.",
+                error: emailResult.error
+            });
+        }
+
+        return res.status(200).json({ message: "A 6-digit OTP has been sent to your email" });
 
     } catch (error) {
         console.error("FORGOT PASSWORD ERROR:", error);
@@ -57,8 +64,9 @@ const resetPassword = async (req, res) => {
             return res.status(400).json({ message: "Passwords do not match" });
         }
 
+        const normalizedEmail = email.toLowerCase().trim();
         const user = await User.findOne({ 
-            email, 
+            email: normalizedEmail, 
             resetOtp: otp,
             resetOtpExpires: { $gt: Date.now() } 
         });

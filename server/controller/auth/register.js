@@ -6,8 +6,9 @@ const { sendWelcomeEmail, sendAdminNotificationEmail } = require("../../utils/em
 const register = async (req, res) => {
     try {
         const { name, companyName, email, password, contact, country, state, city } = req.body;
+        const normalizedEmail = email.toLowerCase().trim();
 
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) {
             return res.status(400).json({ message: "Email already registered" });
         }

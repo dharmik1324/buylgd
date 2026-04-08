@@ -4,7 +4,13 @@ const userSchema = new mongoose.Schema({
     image: String,
     name: String,
     companyName: String,
-    email: String,
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
     password: String,
     contact: String,
     country: String,
