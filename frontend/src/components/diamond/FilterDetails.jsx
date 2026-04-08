@@ -20,8 +20,9 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
     const companySlug = user?.companyName?.toLowerCase().replace(/\s+/g, '-') || "user";
 
     const [liveCount, setLiveCount] = useState(resultsCount || 0);
-    const [isCountLoading, setIsCountLoading] = useState(false);
+    const [isCountLoading, setIsCountLoading] = useState(true);
     const debounceTimeoutRef = useRef(null);
+    const isFirstRender = useRef(true);
 
     const {
         shapes = Array.from(new Set(["ROUND", "PRINCESS", "OVAL", "MARQUISE", "EMERALD", "PEAR", "RADIANT", "CUSHION", "HEART", "ASSCHER", "CUSHION MODIFIED", "EUROPEAN CUT", "OLD MINER", "ROSE", "SQUARE RADIANT", "TRIANGULAR"])),
@@ -87,32 +88,48 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
         setError("");
     }, []);
 
+    const buildParams = (filtersObj) => {
+        const params = { limit: 1 };
+
+        if (filtersObj.shapes?.length) params.shapes = filtersObj.shapes.join(",");
+        if (filtersObj.colors?.length) params.colors = filtersObj.colors.join(",");
+        if (filtersObj.clarities?.length) params.clarities = filtersObj.clarities.join(",");
+        if (filtersObj.cuts?.length) params.cuts = filtersObj.cuts.join(",");
+        if (filtersObj.polish?.length) params.polish = filtersObj.polish.join(",");
+        if (filtersObj.symmetry?.length) params.symmetry = filtersObj.symmetry.join(",");
+        if (filtersObj.tinge?.length) params.tinge = filtersObj.tinge.join(",");
+        if (filtersObj.location?.length) params.location = filtersObj.location.join(",");
+        if (filtersObj.search) params.search = filtersObj.search;
+
+        // Range filters — only send if non-zero and non-empty
+        if (filtersObj.priceMin && filtersObj.priceMin !== "") params.priceMin = filtersObj.priceMin;
+        if (filtersObj.priceMax && filtersObj.priceMax !== "") params.priceMax = filtersObj.priceMax;
+        if (filtersObj.caratMin && filtersObj.caratMin !== "") params.caratMin = filtersObj.caratMin;
+        if (filtersObj.caratMax && filtersObj.caratMax !== "") params.caratMax = filtersObj.caratMax;
+        if (filtersObj.tableMin && filtersObj.tableMin !== "") params.tableMin = filtersObj.tableMin;
+        if (filtersObj.tableMax && filtersObj.tableMax !== "") params.tableMax = filtersObj.tableMax;
+        if (filtersObj.depthMin && filtersObj.depthMin !== "") params.depthMin = filtersObj.depthMin;
+        if (filtersObj.depthMax && filtersObj.depthMax !== "") params.depthMax = filtersObj.depthMax;
+        if (filtersObj.ratioMin && filtersObj.ratioMin !== "") params.ratioMin = filtersObj.ratioMin;
+        if (filtersObj.ratioMax && filtersObj.ratioMax !== "") params.ratioMax = filtersObj.ratioMax;
+
+        return params;
+    };
+
     React.useEffect(() => {
         if (debounceTimeoutRef.current) {
             clearTimeout(debounceTimeoutRef.current);
         }
 
+        // First render: fetch immediately to show real total count
+        const delay = isFirstRender.current ? 0 : 500;
+        isFirstRender.current = false;
+
         setIsCountLoading(true);
 
         debounceTimeoutRef.current = setTimeout(async () => {
             try {
-                const params = { ...filters, limit: 1 };
-
-                // Only send range filters if they differ from the metadata defaults
-                if (params.priceMin === metaPriceMin) delete params.priceMin;
-                if (params.priceMax === metaPriceMax) delete params.priceMax;
-                if (params.caratMin === metaCaratMin) delete params.caratMin;
-                if (params.caratMax === metaCaratMax) delete params.caratMax;
-
-                if (params.shapes?.length) params.shapes = params.shapes.join(",");
-                if (params.colors?.length) params.colors = params.colors.join(",");
-                if (params.clarities?.length) params.clarities = params.clarities.join(",");
-                if (params.cuts?.length) params.cuts = params.cuts.join(",");
-                if (params.polish?.length) params.polish = params.polish.join(",");
-                if (params.symmetry?.length) params.symmetry = params.symmetry.join(",");
-                if (params.tinge?.length) params.tinge = params.tinge.join(",");
-                if (params.location?.length) params.location = params.location.join(",");
-
+                const params = buildParams(filters);
                 const res = await api.get("/admin/diamonds", { params });
                 if (res.data?.success) {
                     setLiveCount(res.data.pagination.totalDiamonds);
@@ -122,7 +139,7 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
             } finally {
                 setIsCountLoading(false);
             }
-        }, 500);
+        }, delay);
 
         dispatch(setCurrentFilters(filters));
 
@@ -154,38 +171,27 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
     }, []);
 
     const handleRangeChange = useCallback((field, value, type) => {
+        // Allow empty string to clear the field
+        if (value === "" || value === null || value === undefined) {
+            const minKey = `${field}Min`;
+            const maxKey = `${field}Max`;
+            updateFilters({ [type === "min" ? minKey : maxKey]: "" });
+            return;
+        }
+
         const numValue = Number(value);
         if (isNaN(numValue)) return;
 
         const minKey = `${field}Min`;
         const maxKey = `${field}Max`;
 
-        const metaMin = metadata[minKey] ?? (
-            field === 'price' ? metaPriceMin :
-                field === 'carat' ? metaCaratMin :
-                    field === 'table' ? metaTableMin :
-                        field === 'depth' ? metaDepthMin :
-                            field === 'ratio' ? metaRatioMin : 0
-        );
-        const metaMax = metadata[maxKey] ?? (
-            field === 'price' ? metaPriceMax :
-                field === 'carat' ? metaCaratMax :
-                    field === 'table' ? metaTableMax :
-                        field === 'depth' ? metaDepthMax :
-                            field === 'ratio' ? metaRatioMax : 100
-        );
-
-        const currentMin = filters[minKey] ?? metaMin;
-        const currentMax = filters[maxKey] ?? metaMax;
-
+        // Free entry — no clamping, user can type max before min or vice versa
         if (type === "min") {
-            const newMin = Math.max(0, Math.min(numValue, currentMax));
-            updateFilters({ [minKey]: newMin });
+            updateFilters({ [minKey]: numValue });
         } else {
-            const newMax = Math.max(currentMin, numValue);
-            updateFilters({ [maxKey]: newMax });
+            updateFilters({ [maxKey]: numValue });
         }
-    }, [filters, metadata, metaPriceMin, metaPriceMax, metaCaratMin, metaCaratMax, metaTableMin, metaTableMax, metaDepthMin, metaDepthMax, metaRatioMin, metaRatioMax, updateFilters]);
+    }, [updateFilters]);
 
     const handleApplyFilter = async () => {
         if (liveCount > 2000) return;
@@ -214,7 +220,6 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
             ? `/${companySlug}/inventory`
             : "/diamonds";
 
-        // Mark as visited so next time header goes directly to inventory
         localStorage.setItem(`inventoryVisited_${user?._id || 'guest'}`, "true");
 
         const filtersToNavigate = { ...filters };
@@ -273,13 +278,10 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
 
     return (
         <div className={`p-4 sm:p-10 rounded-[2.5rem] shadow-2xl border ${isDarkMode ? "bg-[#0A0A0A] border-gray-800 text-white" : "bg-white border-gray-100 text-black"}`}>
-            {/* Image-wise Header */}
+            {/* Header — count hidden, only title + clear */}
             <div className="flex flex-col sm:flex-row items-center justify-between mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-gray-100 dark:border-gray-800 gap-4 sm:gap-0">
                 <div className="flex items-center sm:items-baseline gap-2 sm:gap-4 flex-wrap justify-center">
                     <h2 className={`text-xl sm:text-2xl font-bold tracking-tight`}>Filters</h2>
-                    <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-widest`}>
-                        Found <span className="text-blue-500">{liveCount}</span> matches
-                    </span>
                 </div>
                 <button
                     onClick={handleReset}
@@ -288,6 +290,7 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
                     Clear All
                 </button>
             </div>
+
             {/* Integrated Search Bar */}
             <div className="mb-12 flex justify-center">
                 <div className={`w-full max-w-3xl flex items-center p-1.5 rounded-full border transition-all duration-300 ${isDarkMode ? "bg-black border-gray-800 focus-within:border-blue-500/50" : "bg-white border-slate-200 shadow-xl shadow-blue-500/5 focus-within:border-blue-400/50"}`}>
@@ -324,81 +327,6 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
             </div>
 
             <div className="space-y-8">
-                <div className="mb-12">
-                    <div className="relative flex items-center justify-center mb-8">
-                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                            <div className={`w-full border-t-2 ${isDarkMode ? "border-gray-800" : "border-slate-100"}`}></div>
-                        </div>
-                        <div className={`relative px-4 sm:px-8 ${isDarkMode ? "bg-[#141414]" : "bg-white"}`}>
-                            <span className={`text-xs sm:text-sm font-bold tracking-[0.2em] uppercase ${isDarkMode ? "text-gray-400" : "text-[#1B3061]"}`}>Shape</span>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-nowrap gap-[11px] w-full overflow-x-auto pb-6 scrollbar-hide items-center px-2">
-                        {uniqueShapes.map((shape) => {
-                            const selected = filters.shapes?.some(s => s.toLowerCase() === shape.toLowerCase());
-                            const imageUrl = {
-                                "round": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/2.png",
-                                "oval": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/3.png",
-                                "emerald": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/4.png",
-                                "pear": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/5.png",
-                                "radiant": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/6.png",
-                                "marquise": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/7.png",
-                                "cushion": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/9.png",
-                                "cushionsq": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/9.png",
-                                "princess": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/11.png",
-                                "heart": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/13.png",
-                                "asscher": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/26.png",
-                                "square radiant": squareRadiantImg,
-                                "old miner": oldMinerImg,
-                                "european cut": europeanCutImg,
-                                "rose": roseImg,
-                                "triangular": triangularImg,
-                                "cushion modified": cushionModifiedImg
-                            }[shape.toLowerCase().replace('.', '').trim()] || "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/2.png";
-
-                            return (
-                                <button
-                                    key={shape}
-                                    onClick={() => toggleArrayFilter("shapes", shape)}
-                                    className={`p-2 flex-shrink-0 w-auto h-auto flex flex-col items-center justify-center gap-2 text-[8px] cursor-pointer font-normal uppercase tracking-wider rounded-2xl border border-transparent transition-[background-color,border-color,box-shadow,opacity] duration-300 overflow-hidden group ${selected
-                                        ? isDarkMode
-                                            ? "bg-blue-500/10 text-blue-400 shadow-lg shadow-blue-500/10"
-                                            : "bg-blue-50 text-blue-600 shadow-lg shadow-blue-500/20"
-                                        : isDarkMode
-                                            ? "bg-transparent hover:bg-[#111111] text-gray-500 hover:text-gray-300 hover:border-gray-600"
-                                            : "bg-white hover:bg-slate-60 text-[#3C3C3C] hover:text-blue-500 hover:border-blue-200"
-                                        }`}
-                                >
-                                    <div className="relative w-14 h-14 sm:w-27 sm:h-27 flex items-center justify-center">
-                                        <img
-                                            src={imageUrl}
-                                            alt={shape}
-                                            className={`w-full h-full object-contain transition-all duration-300 diamond-shape-img ${selected
-                                                ? isDarkMode
-                                                    ? "brightness-125 [filter:hue-rotate(180deg)_saturate(200%)]"
-                                                    : "brightness-110 [filter:hue-rotate(190deg)_saturate(150%)]"
-                                                : isDarkMode
-                                                    ? "opacity-80 grayscale group-hover:opacity-100 group-hover:grayscale-0"
-                                                    : "opacity-90 group-hover:opacity-100"
-                                                }`}
-                                        />
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* <RangeSection
-                        label="Price Range"
-                        field="price"
-                        min={filters.priceMin ?? metaPriceMin}
-                        max={filters.priceMax ?? metaPriceMax}
-                        onChange={handleRangeChange}
-                        isDarkMode={isDarkMode}
-                /> */}
-
                 {hasCarat && (
                     <RangeSection
                         label="Carat Weight"
@@ -490,8 +418,6 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
                     />
                 </div>
 
-
-
                 {error && (
                     <p className="text-red-500 text-xs font-normal text-center mt-4 animate-bounce">
                         {error}
@@ -535,11 +461,15 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 
 function RangeSection({ label, field, min, max, onChange, isDarkMode }) {
+    // Show blank instead of 0
+    const displayMin = min === 0 || min === "" ? "" : min;
+    const displayMax = max === 0 || max === "" ? "" : max;
+
     return (
         <div className="mb-10 w-full px-4">
             <div className="relative flex items-center justify-center mb-8">
@@ -555,14 +485,14 @@ function RangeSection({ label, field, min, max, onChange, isDarkMode }) {
             <div className="flex gap-2 mb-4">
                 <input
                     type="number"
-                    value={min}
+                    value={displayMin}
                     onChange={(e) => onChange(field, e.target.value, "min")}
                     className={`w-1/2 border rounded-lg p-2 text-sm focus:ring-1 outline-none ${isDarkMode ? "border-gray-700 bg-[#111111] text-white focus:ring-blue-500" : "border-gray-200 focus:ring-blue-500"}`}
                     placeholder="Min"
                 />
                 <input
                     type="number"
-                    value={max}
+                    value={displayMax}
                     onChange={(e) => onChange(field, e.target.value, "max")}
                     className={`w-1/2 border rounded-lg p-2 text-sm focus:ring-1 outline-none ${isDarkMode ? "border-gray-700 bg-[#111111] text-white focus:ring-blue-500" : "border-gray-200 focus:ring-blue-500"}`}
                     placeholder="Max"
@@ -611,4 +541,3 @@ function FilterGrid({ label, options = [], selectedItems = [], toggleFn, isDarkM
 }
 
 export default FilterDetails;
-

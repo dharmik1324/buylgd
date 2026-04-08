@@ -17,6 +17,7 @@ import europeanCutImg from "../../assets/shapes/european_cut.png";
 import roseImg from "../../assets/shapes/rose.png";
 import triangularImg from "../../assets/shapes/triangular.png";
 import cushionModifiedImg from "../../assets/shapes/cushion_modified.png";
+import { normalizeDiamond } from "../../utils/diamondFields";
 
 
 const Detail = ({ label, value, isDarkMode }) => (
@@ -199,7 +200,7 @@ export const AppDiamond = () => {
             BUYLGD Diamond <span className={`italic ${accentColor}`}>Inventory</span>
           </motion.h1>
 
-          <div className="flex justify-center mt-6 sm:mt-8 w-full overflow-hidden">
+          {/* <div className="flex justify-center mt-6 sm:mt-8 w-full overflow-hidden">
             <div className="flex flex-nowrap gap-2 pl-4 sm:gap-4 w-full justify-start sm:justify-center overflow-x-auto scrollbar-hide items-center">
               {uniqueShapes.map((shape) => {
                 const selected = filters.shapes?.some(s => s.toLowerCase() === shape.toLowerCase());
@@ -237,7 +238,7 @@ export const AppDiamond = () => {
                 );
               })}
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -266,7 +267,10 @@ export const AppDiamond = () => {
                       <DiamondCardSkeleton isDarkMode={isDarkMode} />
                     </motion.div>
                   ))
-                ) : data.map((item, idx) => (
+                ) : data.map((rawItem, idx) => {
+                  // Normalize field aliases so image/price/certificate always resolve
+                  const item = normalizeDiamond(rawItem);
+                  return (
                   <motion.div
                     key={item._id || idx}
                     initial={{ opacity: 0 }}
@@ -303,7 +307,7 @@ export const AppDiamond = () => {
                         />
                       </button>
 
-                      {/* Diamond Image */}
+                      {/* Diamond Image — resolved from all known key aliases */}
                       {item.Diamond_Image ? (
                         <img
                           src={item.Diamond_Image}
@@ -318,7 +322,7 @@ export const AppDiamond = () => {
                         />
                       )}
 
-                      {/* Green Dot Indicator (Bottom Left of Image Area) */}
+                      {/* Green Dot Indicator */}
                       <div className="absolute bottom-3 left-3 w-2.5 h-2.5 bg-green-500 rounded-full border border-white shadow-sm" title="Available"></div>
                     </div>
 
@@ -326,20 +330,23 @@ export const AppDiamond = () => {
                     <div className={`flex flex-col flex-1 p-1 sm:p-4 text-left border-t ${isDarkMode ? "border-gray-800" : "border-gray-100"}`}>
                       {/* Title Line */}
                       <h3 className={`text-xs sm:text-sm font-semibold truncate ${isDarkMode ? "text-gray-100" : "text-gray-800"}`}>
-                        {item.Shape} {item.Weight?.toFixed(2)}ct {item.Color} {item.Clarity}
+                        {item.Shape} {item.Weight ? item.Weight.toFixed(2) : '0.00'}ct {item.Color} {item.Clarity}
                       </h3>
 
-                      {/* Subtitle Line (Cut.Polish.Symmetry / Fluorescence) */}
+                      {/* Subtitle: Cut.Polish.Symmetry / Fluorescence */}
                       <p className={`text-[10px] sm:text-xs mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
-                        {item.Cut && item.Cut !== '-' ? `${item.Cut?.charAt(0) || ''}.` : '-.'}
-                        {item.Polish ? `${item.Polish?.charAt(0) || ''}.` : '-.'}
-                        {item.Symmetry ? `${item.Symmetry?.charAt(0) || ''}` : '-'} / {item.Fluorescence || 'NONE'}
+                        {item.Cut && item.Cut !== '-' ? `${item.Cut.charAt(0)}.` : '-.'}
+                        {item.Polish ? `${item.Polish.charAt(0)}.` : '-.'}
+                        {item.Symmetry ? item.Symmetry.charAt(0) : '-'} / {item.Fluorescence}
                       </p>
 
                       <div className="flex items-end justify-between mt-auto pt-3">
                         <div className="flex flex-col">
                           <span className={`text-sm sm:text-base font-bold ${isDarkMode ? "text-gray-100" : "text-gray-900"}`}>
-                            ${Number(item.Final_Price?.toFixed(2) || 0).toLocaleString()}
+                            {item.Final_Price > 0
+                              ? `$${item.Final_Price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : <span className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Price on request</span>
+                            }
                           </span>
                           <span className={`text-[9px] sm:text-[10px] ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
                             Total Price
@@ -353,7 +360,8 @@ export const AppDiamond = () => {
                       </div>
                     </div>
                   </motion.div>
-                ))}
+                  );
+                })}
               </AnimatePresence>
             </div>
 

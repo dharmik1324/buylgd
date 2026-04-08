@@ -147,19 +147,46 @@ const syncInventoryFromApis = async (options = {}) => {
                             };
 
                             const autoDiscoverMedia = (type) => {
-                                const values = Object.values(item);
-                                for (const val of values) {
-                                    if (typeof val !== 'string' || !val.startsWith('http')) continue;
-                                    const lowerVal = val.toLowerCase();
-                                    if (type === 'image') {
-                                        if (lowerVal.endsWith('.jpg') || lowerVal.endsWith('.jpeg') || lowerVal.endsWith('.png') || lowerVal.endsWith('.webp') || lowerVal.includes('still.jpg')) return val;
-                                    } else if (type === 'video') {
-                                        if ((lowerVal.endsWith('.mp4') || lowerVal.endsWith('.webm') || lowerVal.includes('video') || lowerVal.includes('360')) && !lowerVal.endsWith('.jpg') && !lowerVal.endsWith('.png')) return val;
-                                    } else if (type === 'cert') {
-                                        if (lowerVal.includes('cert') || lowerVal.includes('pdf') || lowerVal.includes('report')) return val;
+                                // First pass: check all string values that start with http/https
+                                const allValues = Object.entries(item);
+                                
+                                if (type === 'image') {
+                                    // Priority 1: clear image extensions
+                                    for (const [, val] of allValues) {
+                                        if (typeof val !== 'string' || !val.trim()) continue;
+                                        const v = val.toLowerCase();
+                                        if (v.startsWith('http') && (v.endsWith('.jpg') || v.endsWith('.jpeg') || v.endsWith('.png') || v.endsWith('.webp') || v.includes('still.jpg'))) return val;
                                     }
+                                    // Priority 2: URL contains image-related keywords
+                                    for (const [, val] of allValues) {
+                                        if (typeof val !== 'string' || !val.trim()) continue;
+                                        const v = val.toLowerCase();
+                                        if (v.startsWith('http') && (v.includes('image') || v.includes('photo') || v.includes('/img') || v.includes('stone_img') || v.includes('still') || v.includes('picture') || v.includes('view_image') || v.includes('imgg'))) return val;
+                                    }
+                                    return '';
                                 }
-                                return "";
+                                
+                                if (type === 'video') {
+                                    for (const [, val] of allValues) {
+                                        if (typeof val !== 'string' || !val.trim()) continue;
+                                        const v = val.toLowerCase();
+                                        if (v.startsWith('http') && (v.endsWith('.mp4') || v.endsWith('.webm') || v.includes('video') || v.includes('v360') || v.includes('360') || v.includes('movie'))) {
+                                            if (!v.endsWith('.jpg') && !v.endsWith('.png')) return val;
+                                        }
+                                    }
+                                    return '';
+                                }
+                                
+                                if (type === 'cert') {
+                                    for (const [, val] of allValues) {
+                                        if (typeof val !== 'string' || !val.trim()) continue;
+                                        const v = val.toLowerCase();
+                                        if (v.startsWith('http') && (v.includes('cert') || v.includes('pdf') || v.includes('report') || v.includes('certi'))) return val;
+                                    }
+                                    return '';
+                                }
+                                
+                                return '';
                             };
 
                             return {
@@ -174,11 +201,11 @@ const syncInventoryFromApis = async (options = {}) => {
                                 Symmetry: getV(["symmetry", "SymmetryName", "Symmetry_Name", "SYMMETRY"]),
                                 Lab: getV(["lab", "LabName", "Lab_Name", "LAB"]),
                                 Report: getV(["Lab_Report_No", "reportNo", "Certificate_No", "Report"]),
-                                Final_Price: Number(getV(["SaleAmt", "totalPrice", "Final_Price", "Price", "Amount", "Net_Amount", "Price"])) || 0,
-                                Price_Per_Carat: Number(getV(["SaleRate", "pricePerCt", "Price_Per_Carat", "Rate", "PricePerCt", "Rate_Per_Ct", "Net_Amount"])) || 0,
-                                Diamond_Image: getV(["Stone_Img_url", "imageLink", "Diamond_Image", "Image_Link", "view_image", "ImageURL", "still_image", "Image_URL"]) || autoDiscoverMedia('image'),
-                                Diamond_Video: getV(["Video_url", "videoLink", "Diamond_Video", "Video_Link", "v360", "vdbVideo", "VideoURL", "Video_URL"]) || autoDiscoverMedia('video'),
-                                Certificate_Image: getV(["Certificate_file_url", "certiFile", "Certificate_Image", "Certi_Link", "CertificateURL", "CertiURL", "cert_url"]) || autoDiscoverMedia('cert'),
+                                Final_Price: Number(getV(["SaleAmt", "totalPrice", "Final_Price", "Price", "Amount", "Net_Amount", "total_price", "TotalPrice", "sale_amount", "SaleAmount", "NetAmt", "NetAmount"])) || 0,
+                                Price_Per_Carat: Number(getV(["SaleRate", "pricePerCt", "Price_Per_Carat", "Rate", "PricePerCt", "Rate_Per_Ct", "Net_Amount", "price_per_carat", "PricePerCarat", "rate_per_ct", "RatePerCt", "PerCtRate"])) || 0,
+                                Diamond_Image: getV(["Stone_Img_url", "imageLink", "Diamond_Image", "Image_Link", "view_image", "ImageURL", "still_image", "Image_URL", "img_link", "ImageLink", "stone_img_url", "StoneImgUrl", "stone_image", "DiamondImage", "image_url", "imgg", "ImgURL", "img_url", "photo", "Photo"]) || autoDiscoverMedia('image'),
+                                Diamond_Video: getV(["Video_url", "videoLink", "Diamond_Video", "Video_Link", "v360", "vdbVideo", "VideoURL", "Video_URL", "video_link", "VideoLink", "DiamondVideo", "video_url", "video360", "Video360", "V360"]) || autoDiscoverMedia('video'),
+                                Certificate_Image: getV(["Certificate_file_url", "certiFile", "Certificate_Image", "Certi_Link", "CertificateURL", "CertiURL", "cert_url", "certi_url", "CertiFile", "certImage", "CertImage", "cert_link", "CertLink"]) || autoDiscoverMedia('cert'),
                                 Availability: getV(["StockStatus", "status", "Availability", "Status"], "Available"),
                                 Measurements: getV(["Measurement", "measurements", "Dimensions"]),
                                 Depth: getV(["Total_Depth_Per", "depth", "DepthPer", "Depth_Per", "Depth"]),
@@ -283,4 +310,5 @@ const syncInventoryFromApis = async (options = {}) => {
     }
 };
 
-module.exports = { syncInventoryFromApis, getSyncStatus };
+module.exports = { syncInventoryFromApis, getSyncStatus, parseConfigString };
+

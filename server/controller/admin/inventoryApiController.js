@@ -197,6 +197,40 @@ const getSyncStatus = async (req, res) => {
     }
 };
 
+// Peek raw DB record — shows actual stored field names for debugging image/price issues
+const peekDiamondRaw = async (req, res) => {
+    try {
+        const Diamond = require("../../models/Diamond");
+        const sample = await Diamond.findOne({}).lean();
+        if (!sample) return res.status(404).json({ success: false, message: "No diamonds in DB" });
+
+        const keys = Object.keys(sample);
+        const imageRelated = {};
+        const priceRelated = {};
+        // Find any field that looks like it could be an image or price
+        for (const key of keys) {
+            const val = sample[key];
+            const k = key.toLowerCase();
+            if (k.includes('img') || k.includes('image') || k.includes('photo') || k.includes('still') || k.includes('view') || k.includes('picture')) {
+                imageRelated[key] = val;
+            }
+            if (k.includes('price') || k.includes('rate') || k.includes('amt') || k.includes('amount') || k.includes('sale') || k.includes('cost')) {
+                priceRelated[key] = val;
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            allKeys: keys,
+            imageRelatedFields: imageRelated,
+            priceRelatedFields: priceRelated,
+            fullSample: sample
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     getInventoryApis,
     createInventoryApi,
@@ -204,5 +238,6 @@ module.exports = {
     deleteInventoryApi,
     testFetch,
     triggerManualSync,
-    getSyncStatus
+    getSyncStatus,
+    peekDiamondRaw
 };

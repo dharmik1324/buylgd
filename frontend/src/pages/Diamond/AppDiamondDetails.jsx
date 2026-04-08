@@ -13,8 +13,11 @@ import { toggleWishlist } from "../../store/wishlistSlice";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShapeIcon } from "../../components/diamond/DiamondShapeIcons";
+import { normalizeDiamond } from "../../utils/diamondFields";
 
-export const AppDiamondDetails = ({ onClose, diamond, isDarkMode }) => {
+export const AppDiamondDetails = ({ onClose, diamond: rawDiamond, isDarkMode }) => {
+    // Normalize all field aliases (image, price, cert, etc.) from any API/CSV source
+    const diamond = normalizeDiamond(rawDiamond);
     /* ── thumbnail list ─────────────────────────────────── */
     const sanitizeUrl = (url) => {
         if (!url) return "";
