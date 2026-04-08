@@ -222,6 +222,7 @@ export const AppDiamond = () => {
                       <img
                         src={imageUrl}
                         alt={shape}
+                        loading="lazy"
                         className={`w-full h-full object-contain transition-all duration-300 diamond-shape-img ${selected
                           ? isDarkMode
                             ? "brightness-125 [filter:hue-rotate(180deg)_saturate(200%)]"
@@ -268,7 +269,6 @@ export const AppDiamond = () => {
                 ) : data.map((item, idx) => (
                   <motion.div
                     key={item._id || idx}
-                    layout
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     whileHover={{ y: -4 }}
@@ -308,6 +308,7 @@ export const AppDiamond = () => {
                         <img
                           src={item.Diamond_Image}
                           alt={item.Shape}
+                          loading="lazy"
                           className={`w-full h-full object-contain transition-transform duration-500 group-hover:scale-105 ${isDarkMode ? "mix-blend-screen" : "mix-blend-multiply"}`}
                         />
                       ) : (

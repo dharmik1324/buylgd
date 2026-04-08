@@ -361,7 +361,7 @@ export const Diamond = () => {
                                             <div className="flex items-center space-x-4">
                                                 <div className={`w-12 h-12 rounded-xl border flex items-center justify-center overflow-hidden shrink-0 group-hover:border-blue-500/50 transition-colors ${imgBoxBg}`}>
                                                     {item.Diamond_Image ? (
-                                                        <img src={item.Diamond_Image} alt="" className="w-full h-full object-cover" />
+                                                        <img src={item.Diamond_Image} alt="" loading="lazy" className="w-full h-full object-cover" />
                                                     ) : (
                                                         <ShapeIcon shape={item.Shape} className={`w-1/2 h-1/2 ${isDarkMode ? "text-slate-700" : "text-slate-200"}`} />
                                                     )}

@@ -191,23 +191,30 @@ const getDiamondsData = async (req, res) => {
             finalMatch.source = srcUpper;
         }
 
-        // Filtering for active sources with case-insensitive regex for precision
-        const activeSourceMatch = activeApiUrls.length > 0 
-            ? { $match: { Source: { $in: activeApiUrls } } }
-            : { $match: { _id: { $exists: false } } };
+        // --- SOURCE FILTERING LOGIC ---
+        // Relaxed: Show all data unless specifically filtered by source
+        let sourceMatch = {};
+        if (srcUpper === "API" && activeApiUrls.length > 0) {
+            sourceMatch = { Source: { $in: activeApiUrls } };
+        } else if (srcUpper && srcUpper !== "CSV" && srcUpper !== "API") {
+            // Specific source URL provided (or name)
+            sourceMatch = { Source: source };
+        }
 
         // 1. Get Totals
         const countPipeline = [];
         if (srcUpper === "CSV") {
-            countPipeline.push(normalizeCsv, { $match: finalMatch });
-        } else if (srcUpper === "API") {
-            countPipeline.push(activeSourceMatch, normalizeMain, { $match: finalMatch });
+            countPipeline.push(normalizeCsv, { $match: { ...finalMatch } });
         } else {
+            // If API source or ALL sources
             countPipeline.push(
-                activeSourceMatch,
                 normalizeMain,
-                { $match: finalMatch },
-                {
+                { $match: { ...finalMatch, ...sourceMatch } }
+            );
+            
+            // If ALL sources, union with CSV
+            if (!srcUpper) {
+                countPipeline.push({
                     $unionWith: {
                         coll: "csvdiamonds",
                         pipeline: [
@@ -215,10 +222,9 @@ const getDiamondsData = async (req, res) => {
                             { $match: finalMatch }
                         ]
                     }
-                }
-            );
+                });
+            }
         }
-
         countPipeline.push({ $count: "total" });
 
         const countResult = (srcUpper === "CSV") 
@@ -240,18 +246,14 @@ const getDiamondsData = async (req, res) => {
                 normalizeCsv,
                 { $match: finalMatch }
             );
-        } else if (srcUpper === "API") {
-            dataPipeline.push(
-                activeSourceMatch,
-                normalizeMain,
-                { $match: finalMatch }
-            );
         } else {
             dataPipeline.push(
-                activeSourceMatch,
                 normalizeMain,
-                { $match: finalMatch },
-                {
+                { $match: { ...finalMatch, ...sourceMatch } }
+            );
+            
+            if (!srcUpper) {
+                dataPipeline.push({
                     $unionWith: {
                         coll: "csvdiamonds",
                         pipeline: [
@@ -259,8 +261,8 @@ const getDiamondsData = async (req, res) => {
                             { $match: finalMatch }
                         ]
                     }
-                }
-            );
+                });
+            }
         }
 
         dataPipeline.push(
@@ -278,10 +280,9 @@ const getDiamondsData = async (req, res) => {
         if (page === 1) {
             try {
                 // Get unified distinct values using aggregation and $unionWith
-                const activeSourceMatch = { $match: { Source: { $in: activeApiUrls } } };
-                
+                // Metadata pipelines based on relaxed source filtering
                 const metaPipeline = (field) => [
-                    activeSourceMatch,
+                    { $match: sourceMatch },
                     { $project: { [field]: { $ifNull: [`$${field}`, `$${field.toUpperCase()}`] } } },
                     {
                         $unionWith: {
@@ -297,7 +298,7 @@ const getDiamondsData = async (req, res) => {
                     Diamond.aggregate(metaPipeline("Color")),
                     Diamond.aggregate(metaPipeline("Clarity")),
                     Diamond.aggregate([
-                        activeSourceMatch,
+                        { $match: sourceMatch },
                         normalizeMain,
                         {
                             $unionWith: {
@@ -337,7 +338,7 @@ const getDiamondsData = async (req, res) => {
                     // Calculate stats from both collections separately and merge to handle empty collections correctly
                     const [mainStats, csvStats] = await Promise.all([
                         Diamond.aggregate([
-                            activeSourceMatch,
+                            { $match: sourceMatch },
                             normalizeMain,
                             {
                                 $group: {

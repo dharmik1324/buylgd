@@ -68,8 +68,9 @@ const syncInventoryFromApis = async (options = {}) => {
     try {
         const activeApis = await InventoryApi.find({ isActive: true });
         let allDiamonds = [];
+        let insertedCount = 0;
 
-        console.log(`[SYNC_UTIL] Found ${activeApis.length} active APIs for synchronization.`);
+        console.log(`[SYNC_UTIL] [${new Date().toLocaleTimeString()}] Found ${activeApis.length} active APIs for synchronization.`);
 
         for (const apiConfig of activeApis) {
             try {
@@ -213,8 +214,9 @@ const syncInventoryFromApis = async (options = {}) => {
             try {
                 const result = await Diamond.insertMany(uniqueDiamonds, { ordered: false });
                 insertedCount = result.length;
+                console.log(`[SYNC_UTIL] Bulk insert successful: ${insertedCount} items inserted.`);
             } catch (bulkError) {
-                insertedCount = bulkError.insertedDocs ? bulkError.insertedDocs.length : 0;
+                insertedCount = bulkError.insertedDocs ? bulkError.insertedDocs.length : (bulkError.writeErrors ? uniqueDiamonds.length - bulkError.writeErrors.length : 0);
                 console.warn(`[SYNC_UTIL] Bulk insert partial success: ${insertedCount} items inserted.`);
             }
         } else if (activeApis.length > 0) {
