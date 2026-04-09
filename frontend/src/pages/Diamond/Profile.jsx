@@ -105,7 +105,7 @@ export const Profile = () => {
       <div class="row"><span class="label">Method</span><span class="method-get">GET</span></div>
       <div class="row"><span class="label">Endpoint URL</span><span class="url">${apiUrl}</span></div>
       <div class="row"><span class="label">Data Mode</span><span class="value">${mode === 'specific' ? 'Specific Filters Applied' : 'All Available Data'}</span></div>
-      <div class="row"><span class="label">Price Adjustment</span><span class="value">${adj > 0 ? '+' : ''}${adj}% applied to all prices</span></div>
+
     </div>
   </div>
 
@@ -199,6 +199,14 @@ curl -X GET \
       <div class="row"><span class="label">Rate limit</span><span class="value">No rate limit — call as frequently as needed</span></div>
       <div class="row"><span class="label">Max results</span><span class="value">500 diamonds per call</span></div>
       <div class="row"><span class="label">Support</span><span class="value">Contact your account manager for API access issues</span></div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top: 40px; text-align: center;">
+    <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;">Strategic Advertising Partner</div>
+    <div class="card" style="border: 1px dashed #e2e8f0; background: white; padding: 30px; border-radius: 15px;">
+      <img src="https://firevy.xyz/wp-content/uploads/2025/11/balck-transparent.png" style="max-height: 90px; width: auto; margin: 0 auto; display: block;" alt="Partner Logo" />
+      <p style="font-size: 11px; color: #64748b; margin-top: 15px; font-weight: 500;">Powering Luxury Diamond Inventory & API Solutions</p>
     </div>
   </div>
 
