@@ -39,6 +39,94 @@ export const AppDiamond = () => {
   const isDarkMode = useSelector((state) => state.theme.isDarkMode);
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const { user } = useSelector((state) => state.auth);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  I have updated the diamond shape section on the Selection page as requested.
+
+
   const navigate = useNavigate();
 
   const isWishlisted = (id) => wishlistItems.some((w) => String(w._id) === String(id));
@@ -333,7 +421,7 @@ export const AppDiamond = () => {
                         </h3>
 
                         {/* Subtitle: Cut.Polish.Symmetry / Fluorescence */}
-                        <p className={`text-[11px] sm:text-xs font-semibold mt-1 tracking-wider ${isDarkMode ? "text-gray-500" : "text-[#718096] uppercase"}`}>
+                        <p className={`text-[11px] sm:text-xs font-semibold mt-1 tracking-wider ${isDarkMode ? "text-gray-500" : "text-black uppercase"}`}>
                           {item.Cut ? `${item.Cut.charAt(0)}.` : 'E.'}
                           {item.Polish ? `${item.Polish.charAt(0)}.` : 'E.'}
                           {item.Symmetry ? `${item.Symmetry.charAt(0)}.` : '-'} / {item.Fluorescence || 'NONE'}
@@ -341,7 +429,7 @@ export const AppDiamond = () => {
 
                         <div className="flex items-end justify-between mt-auto pt-4">
                           <div className="flex flex-col">
-                            <span className={`text-sm sm:text-base font-bold ${isDarkMode ? "text-gray-100" : "text-[#718096]"}`}>
+                            <span className={`text-sm sm:text-base font-bold ${isDarkMode ? "text-gray-100" : "text-black"}`}>
                               {item.Final_Price > 0
                                 ? `$${item.Final_Price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                 : <span className="">Price on request</span>
@@ -353,8 +441,8 @@ export const AppDiamond = () => {
                           </div>
 
                           {/* More options button */}
-                          <button 
-                            className={`w-10 h-8 flex items-center justify-center rounded-lg transition-colors ${isDarkMode ? "bg-blue-900/50 text-blue-400 hover:bg-blue-800/60" : "bg-blue-50 text-blue-500 hover:bg-blue-100"}`} 
+                          <button
+                            className={`w-10 h-8 flex items-center justify-center rounded-lg transition-colors ${isDarkMode ? "bg-blue-900/50 text-blue-400 hover:bg-blue-800/60" : "bg-blue-50 text-blue-500 hover:bg-blue-100"}`}
                             onClick={(e) => { e.stopPropagation(); setSelectedDiamond(item); }}
                           >
                             <span className="text-xl font-bold tracking-widest leading-none -mt-1">...</span>

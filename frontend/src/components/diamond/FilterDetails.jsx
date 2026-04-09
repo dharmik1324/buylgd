@@ -25,7 +25,12 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
     const isFirstRender = useRef(true);
 
     const {
-        shapes = Array.from(new Set(["ROUND", "PRINCESS", "OVAL", "MARQUISE", "EMERALD", "PEAR", "RADIANT", "CUSHION", "HEART", "ASSCHER", "CUSHION MODIFIED", "EUROPEAN CUT", "OLD MINER", "ROSE", "SQUARE RADIANT", "TRIANGULAR"])),
+        shapes = Array.from(new Set([
+            "ROUND", "PRINCESS", "OVAL", "MARQUISE", "EMERALD", "PEAR", "RADIANT", "CUSHION",
+            "HEART", "ASSCHER", "CUSHION MODIFIED", "EUROPEAN CUT", "OLD MINER", "ROSE",
+            "SQUARE RADIANT", "TRIANGULAR", "BAGUETTE", "TAPERED BAGUETTE", "TRILLION",
+            "SHIELD", "HEXAGONAL", "TRAPEZOID", "KITE", "HALF MOON", "BULLET"
+        ])),
         colors = ["D", "E", "F", "G", "H", "I", "J"],
         clarities = ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1"],
         cuts = ["ID", "EX", "VG"],
@@ -327,6 +332,89 @@ export const FilterDetails = ({ metadata = {}, filters: propFilters, resultsCoun
             </div>
 
             <div className="space-y-8">
+                {/* Shape selection section */}
+                <div className="mb-12">
+                    <div className="relative flex items-center justify-center mb-8">
+                        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div className={`w-full border-t-2 ${isDarkMode ? "border-gray-800" : "border-slate-100"}`}></div>
+                        </div>
+                        <div className={`relative px-4 sm:px-8 ${isDarkMode ? "bg-[#141414]" : "bg-white"}`}>
+                            <span className={`text-xs sm:text-sm font-bold tracking-[0.2em] uppercase ${isDarkMode ? "text-gray-400" : "text-[#1B3061]"}`}>
+                                Select Shape
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="w-full">
+                        <div
+                            className="w-full overflow-x-auto pb-4 scrollbar-hide flex justify-start"
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        >
+                            <div className="flex flex-nowrap gap-2 sm:gap-4 px-2 sm:px-4">
+                                    {uniqueShapes.map((shape) => {
+                                        const selected = filters.shapes?.some(s => s.toLowerCase() === shape.toLowerCase());
+                                        const shapeKey = shape.toLowerCase().replace('.', '').trim();
+                                        const imageUrl = {
+                                            "round": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/2.png",
+                                            "oval": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/3.png",
+                                            "emerald": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/4.png",
+                                            "pear": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/5.png",
+                                            "radiant": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/6.png",
+                                            "marquise": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/7.png",
+                                            "cushion": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/9.png",
+                                            "cushion modified": cushionModifiedImg,
+                                            "cushionsq": cushionModifiedImg,
+                                            "princess": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/11.png",
+                                            "heart": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/13.png",
+                                            "asscher": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/26.png",
+                                            "square radiant": squareRadiantImg,
+                                            "old miner": oldMinerImg,
+                                            "european cut": europeanCutImg,
+                                            "rose": roseImg,
+                                            "triangular": triangularImg,
+                                            "trillion": triangularImg,
+                                            "baguette": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/4.png",
+                                            "tapered baguette": "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/4.png",
+                                        }[shapeKey] || "https://diamonds.kiradiam.com/KOnline/images/search/ShapeNew/2.png";
+
+                                        // Local assets often have white backgrounds that need to be removed or inverted in dark mode
+                                        const isLocal = !imageUrl.includes('kiradiam.com');
+
+                                        return (
+                                            <button
+                                                key={shape}
+                                                onClick={() => toggleArrayFilter("shapes", shape)}
+                                                className={`flex flex-col items-center justify-center rounded-2xl transition-all duration-300 flex-shrink-0 w-24 h-24 sm:w-28 sm:h-28 group ${selected
+                                                    ? isDarkMode
+                                                        ? "bg-amber-500/10"
+                                                        : "bg-amber-50 shadow-sm"
+                                                    : isDarkMode
+                                                        ? "bg-[#111111] hover:bg-amber-500/5"
+                                                        : "bg-white hover:bg-amber-50/40"
+                                                    }`}
+                                            >
+                                                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                                                    <img
+                                                        src={imageUrl}
+                                                        alt={shape}
+                                                        className={`max-w-full max-h-full object-contain transition-all duration-300 ${isDarkMode
+                                                            ? "brightness-0 invert mix-blend-screen brightness-200"
+                                                            : isLocal ? "mix-blend-multiply" : ""
+                                                            } ${selected
+                                                                ? isDarkMode
+                                                                    ? "brightness-125 [filter:sepia(1)_saturate(3)_hue-rotate(-45deg)]"
+                                                                    : "brightness-110 [filter:sepia(1)_saturate(5)_hue-rotate(-45deg)]"
+                                                                : "opacity-100 grayscale hover:opacity-100 hover:grayscale-0"
+                                                            }`}
+                                                    />
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 {hasCarat && (
                     <RangeSection
                         label="Carat Weight"
@@ -522,13 +610,13 @@ function FilterGrid({ label, options = [], selectedItems = [], toggleFn, isDarkM
                         <button
                             key={opt}
                             onClick={() => toggleFn(opt)}
-                            className={`px-4 py-1.5 sm:px-8 sm:py-2 text-[10px] sm:text-[11px] font-bold rounded-full border transition-all duration-300 ${active
+                            className={`px-4 py-1.5 sm:px-8 sm:py-2 text-[10px] sm:text-[11px] font-bold rounded-full transition-all duration-300 ${active
                                 ? isDarkMode
-                                    ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20"
-                                    : "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20"
+                                    ? "bg-amber-500/20 text-amber-400"
+                                    : "bg-amber-100 text-amber-900 shadow-sm"
                                 : isDarkMode
-                                    ? "bg-transparent border-gray-800 text-gray-500 hover:border-blue-500/50 hover:bg-blue-500/5 hover:text-blue-400"
-                                    : "bg-white border-blue-100 text-[#4A4A4A] hover:border-blue-400 hover:bg-blue-50/20 hover:text-blue-600"
+                                    ? "bg-transparent text-gray-500 hover:bg-amber-500/5 hover:text-amber-400"
+                                    : "bg-white text-[#4A4A4A] hover:bg-amber-50/50 hover:text-amber-700"
                                 }`}
                         >
                             {opt}

@@ -286,7 +286,7 @@ export const PublicInventory = () => {
                         </h3>
 
                         {/* Subtitle: Cut.Polish.Symmetry / Fluorescence */}
-                        <p className={`text-[11px] sm:text-xs font-semibold mt-1 tracking-wider ${isDarkMode ? "text-gray-500" : "text-[#718096] uppercase"}`}>
+                        <p className={`text-[11px] sm:text-xs font-semibold mt-1 tracking-wider ${isDarkMode ? "text-gray-500" : "text-black uppercase"}`}>
                           {item.Cut ? `${item.Cut.charAt(0)}.` : 'E.'}
                           {item.Polish ? `${item.Polish.charAt(0)}.` : 'E.'}
                           {item.Symmetry ? `${item.Symmetry.charAt(0)}.` : '-'} / {item.Fluorescence || 'NONE'}
@@ -294,7 +294,7 @@ export const PublicInventory = () => {
 
                         <div className="flex items-end justify-between mt-auto pt-4">
                           <div className="flex flex-col">
-                            <span className={`text-sm sm:text-base font-bold ${isDarkMode ? "text-gray-100" : "text-[#718096]"}`}>
+                            <span className={`text-sm sm:text-base font-bold ${isDarkMode ? "text-gray-100" : "text-black"}`}>
                               {item.Final_Price > 0
                                 ? `$${item.Final_Price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                 : <span className="">Price on request</span>

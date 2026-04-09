@@ -19,7 +19,12 @@ export const FilterPage = () => {
     }, [dispatch]);
 
     const metadata = {
-        shapes: ["ROUND", "PRINCESS", "OVAL", "MARQUISE", "EMERALD", "PEAR", "RADIANT", "CUSHION", "HEART", "ASSCHER", "CUSHION MODIFIED", "EUROPEAN CUT", "OLD MINER", "ROSE", "SQUARE RADIANT", "TRIANGULAR"],
+        shapes: [
+            "ROUND", "PRINCESS", "OVAL", "MARQUISE", "EMERALD", "PEAR", "RADIANT", "CUSHION", 
+            "HEART", "ASSCHER", "CUSHION MODIFIED", "EUROPEAN CUT", "OLD MINER", "ROSE", 
+            "SQUARE RADIANT", "TRIANGULAR", "BAGUETTE", "TAPERED BAGUETTE", "TRILLION", 
+            "SHIELD", "HEXAGONAL", "TRAPEZOID", "KITE", "HALF MOON", "BULLET"
+        ],
         colors:
             serverMetadata?.colors && serverMetadata.colors.length
                 ? serverMetadata.colors
