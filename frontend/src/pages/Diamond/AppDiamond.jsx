@@ -124,8 +124,6 @@ export const AppDiamond = () => {
   
   
   
-  I have updated the diamond shape section on the Selection page as requested.
-
 
   const navigate = useNavigate();
 
