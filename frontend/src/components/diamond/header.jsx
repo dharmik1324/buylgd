@@ -37,7 +37,7 @@ export const Header = () => {
 
   const linkClass = (path) =>
     `cursor-pointer transition-all duration-300 text-xl ${isActive(path)
-      ? `${isDarkMode ? "text-white" : "text-black"}`
+      ? `${isDarkMode ? "text-blue-400 font-medium" : "text-blue-600 font-medium"}`
       : `${isDarkMode ? "text-white" : "text-black"} hover:text-blue-400`
     }`;
 
@@ -87,7 +87,7 @@ export const Header = () => {
           <nav className="hidden md:flex gap-10 text-sm font-normal tracking-wide items-center">
             <span
               className={`cursor-pointer transition-all duration-300 text-xl ${isActive(selectionPath) || isActive(inventoryPath)
-                ? `${isDarkMode ? "text-white" : "text-black"}`
+                ? `${isDarkMode ? "text-blue-400 font-medium" : "text-blue-600 font-medium"}`
                 : `${isDarkMode ? "text-white" : "text-black"} hover:text-blue-400`
                 }`}
               onClick={handleInventoryNavigation}
@@ -178,7 +178,7 @@ export const Header = () => {
           >
             <span
               className={`cursor-pointer transition-all duration-300 text-xl ${isActive(selectionPath) || isActive(inventoryPath)
-                ? `${isDarkMode ? "text-white" : "text-black"}`
+                ? `${isDarkMode ? "text-blue-400 font-medium" : "text-blue-600 font-medium"}`
                 : `${isDarkMode ? "text-white" : "text-black"} hover:text-blue-400`
                 }`}
               onClick={() => {
