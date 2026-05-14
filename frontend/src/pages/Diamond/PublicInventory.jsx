@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { fetchPublicDiamonds, setCurrentFilters } from "../../store/diamondSlice";
 import { toggleWishlist } from "../../store/wishlistSlice";
 import { motion, AnimatePresence } from "framer-motion";
@@ -93,11 +93,24 @@ export const PublicInventory = () => {
     dispatch(setCurrentFilters(filters));
   }, [dispatch, filters]);
 
-  const handleLoadMore = () => {
-    if (!loading && currentPage < totalPages) {
-      dispatch(fetchPublicDiamonds(getParams(currentPage + 1)));
+  const observerTarget = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && !loading && currentPage < totalPages) {
+          dispatch(fetchPublicDiamonds(getParams(currentPage + 1)));
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
     }
-  };
+
+    return () => observer.disconnect();
+  }, [loading, currentPage, totalPages, filters, dispatch]);
 
   const toggleShape = (shape) => {
     setFilters(prev => {
@@ -318,10 +331,12 @@ export const PublicInventory = () => {
             </div>
 
             {currentPage < totalPages && (
-              <div className="mt-12 text-center">
-                <button onClick={handleLoadMore} disabled={loading} className={`${accentBg} text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest`}>
-                  {loading ? "Loading..." : "Load More"}
-                </button>
+              <div ref={observerTarget} className="mt-12 w-full flex justify-center pb-12">
+                {loading ? (
+                  <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <div className="w-10 h-10 border-4 border-gray-300 border-t-transparent rounded-full animate-spin opacity-50"></div>
+                )}
               </div>
             )}
           </div>

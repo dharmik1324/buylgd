@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { fetchDiamonds, setCurrentFilters } from "../../store/diamondSlice";
 import { toggleWishlist } from "../../store/wishlistSlice";
 // import { CircleLoader } from "react-spinners";
@@ -255,11 +255,24 @@ export const AppDiamond = () => {
     localStorage.setItem(`inventoryVisited_${user?._id || 'guest'}`, "true");
   }, [dispatch, filters, user?._id]);
 
-  const handleLoadMore = () => {
-    if (!loading && currentPage < totalPages) {
-      dispatch(fetchDiamonds(getParams(currentPage + 1)));
+  const observerTarget = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && !loading && currentPage < totalPages) {
+          dispatch(fetchDiamonds(getParams(currentPage + 1)));
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
     }
-  };
+
+    return () => observer.disconnect();
+  }, [loading, currentPage, totalPages, filters, dispatch]);
 
   const toggleShape = (shape) => {
     setFilters(prev => {
@@ -454,10 +467,12 @@ export const AppDiamond = () => {
             </div>
 
             {currentPage < totalPages && (
-              <div className="mt-12 text-center">
-                <button onClick={handleLoadMore} disabled={loading} className={`${accentBg} text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest`}>
-                  {loading ? "Loading..." : "Load More"}
-                </button>
+              <div ref={observerTarget} className="mt-12 w-full flex justify-center pb-12">
+                {loading ? (
+                  <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <div className="w-10 h-10 border-4 border-gray-300 border-t-transparent rounded-full animate-spin opacity-50"></div>
+                )}
               </div>
             )}
           </div>

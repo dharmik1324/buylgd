@@ -215,38 +215,38 @@ export const Users = () => {
 
     return (
         <div className={`flex-1 min-h-screen p-4 sm:p-6 md:p-8 font-sans transition-colors duration-300 ${pageBg}`}>
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 sm:mb-10 gap-4">
-                <div>
-                    <h1 className={`text-2xl sm:text-3xl font-normal tracking-tighter uppercase ${headText}`}>User Directory</h1>
+            <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 sm:mb-10 gap-4">
+                <div className="shrink-0">
+                    <h1 className={`text-2xl sm:text-3xl lg:text-2xl xl:text-3xl font-normal tracking-tighter uppercase whitespace-nowrap ${headText}`}>User Directory</h1>
                     <p className="text-[10px] font-normal text-slate-500 uppercase tracking-widest mt-1">Personnel Management Control</p>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 xl:gap-3 w-full xl:w-auto">
+                    <div className="relative flex-1 xl:flex-none">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                         <input
                             type="text"
                             placeholder="Search users..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className={`border rounded-xl py-2.5 pl-10 pr-4 text-xs font-normal focus:outline-none focus:border-blue-500 w-full sm:w-64 transition-all ${inputCls}`}
+                            className={`border rounded-xl py-2 xl:py-2.5 pl-10 pr-4 text-xs font-normal focus:outline-none focus:border-blue-500 w-full sm:w-64 lg:w-48 xl:w-64 transition-all ${inputCls}`}
                         />
                     </div>
                     <button
                         onClick={() => dispatch(fetchUsers())}
-                        className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-normal uppercase tracking-widest transition-all border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        className={`flex items-center justify-center gap-1.5 xl:gap-2 px-4 xl:px-5 py-2 xl:py-2.5 rounded-xl text-[10px] font-normal uppercase tracking-widest transition-all border shrink-0 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                     >
-                        <RefreshCcw size={16} className={loading ? "animate-spin" : ""} /> Refresh
+                        <RefreshCcw size={14} className={loading ? "animate-spin" : ""} /> Refresh
                     </button>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-[10px] font-normal uppercase tracking-widest transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                        className="flex items-center justify-center gap-1.5 xl:gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 xl:px-5 py-2 xl:py-2.5 rounded-xl text-[10px] font-normal uppercase tracking-widest transition-all shadow-lg shadow-blue-600/20 active:scale-95 shrink-0"
                     >
-                        <Plus size={16} /> Add User
+                        <Plus size={14} /> Add User
                     </button>
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-6 mb-10">
                 <StatCard title="Total Users" value={users?.length || 0} icon={<UsersIcon className="text-blue-500" />} trend="+12.5%" />
                 <StatCard title="Activated Users" value={users?.filter(u => u.isApproved).length || 0} icon={<UserCheck className="text-emerald-500" />} trend="Verified" trendColor="text-emerald-500 bg-emerald-500/10" />
                 <StatCard title="Active Admins" value={users?.filter(u => u.role === 'admin').length || 0} icon={<ShieldCheck className="text-amber-500" />} trend="Secured" trendColor="text-amber-500 bg-amber-500/10" />
@@ -310,16 +310,16 @@ export const Users = () => {
             </div>
 
             <div className={`border rounded-3xl shadow-2xl transition-all duration-500 overflow-visible ${cardBg}`}>
-                <div className="overflow-x-auto overflow-y-visible rounded-3xl custom-scrollbar">
-                    <table className="w-full text-left border-collapse min-w-[1000px] table-auto">
+                <div className="overflow-x-auto overflow-y-visible rounded-3xl custom-scrollbar pb-4">
+                    <table className="w-full text-left border-collapse min-w-max xl:min-w-full table-auto">
                         <thead className={`border-b sticky top-0 z-30 transition-colors ${tableHdr}`}>
                             <tr>
-                                <th className="px-8 py-6 text-[11px] font-normal uppercase tracking-[0.2em] text-slate-500 font-mono">User Identity</th>
-                                <th className="px-8 py-6 text-[11px] font-normal uppercase tracking-[0.2em] text-slate-500 font-mono">Company</th>
-                                <th className="px-8 py-6 text-[11px] font-normal uppercase tracking-[0.2em] text-slate-500 font-mono text-center">System Role</th>
-                                <th className="px-8 py-6 text-[11px] font-normal uppercase tracking-[0.2em] text-slate-500 font-mono text-center">Access Status</th>
-                                <th className="px-8 py-6 text-[11px] font-normal uppercase tracking-[0.2em] text-slate-500 font-mono text-center">Public API</th>
-                                <th className="px-8 py-6 text-[11px] font-normal uppercase tracking-[0.2em] text-slate-500 font-mono text-right rounded-tr-3xl">Operations</th>
+                                <th className="px-2 xl:px-6 py-5 xl:py-6 text-[9px] xl:text-[11px] font-normal uppercase tracking-wider xl:tracking-[0.2em] text-slate-500 font-mono whitespace-nowrap">User Identity</th>
+                                <th className="px-2 xl:px-6 py-5 xl:py-6 text-[9px] xl:text-[11px] font-normal uppercase tracking-wider xl:tracking-[0.2em] text-slate-500 font-mono whitespace-nowrap">Company</th>
+                                <th className="px-2 xl:px-6 py-5 xl:py-6 text-[9px] xl:text-[11px] font-normal uppercase tracking-wider xl:tracking-[0.2em] text-slate-500 font-mono text-center whitespace-nowrap">System Role</th>
+                                <th className="px-2 xl:px-6 py-5 xl:py-6 text-[9px] xl:text-[11px] font-normal uppercase tracking-wider xl:tracking-[0.2em] text-slate-500 font-mono text-center whitespace-nowrap">Access Status</th>
+                                <th className="px-2 xl:px-6 py-5 xl:py-6 text-[9px] xl:text-[11px] font-normal uppercase tracking-wider xl:tracking-[0.2em] text-slate-500 font-mono text-center whitespace-nowrap">Public API</th>
+                                <th className="px-2 xl:px-6 py-5 xl:py-6 text-[9px] xl:text-[11px] font-normal uppercase tracking-wider xl:tracking-[0.2em] text-slate-500 font-mono text-right rounded-tr-3xl whitespace-nowrap">Operations</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/10">
@@ -332,39 +332,40 @@ export const Users = () => {
                                         transition={{ delay: idx * 0.03, type: "spring", stiffness: 100 }}
                                         className={`transition-all duration-300 group ${isDarkMode ? 'hover:bg-blue-600/[0.03]' : 'hover:bg-blue-50/50'}`}
                                     >
-                                        <td className="px-8 py-7">
-                                            <div className="flex items-center gap-4">
-                                                <div className="relative group">
+                                        <td className="px-2 xl:px-6 py-5 xl:py-7">
+                                            <div className="flex items-center gap-2 xl:gap-4">
+                                                <div className="relative group shrink-0">
                                                     {user.image ? (
-                                                        <img src={user.image} alt={user.name} className="w-12 h-12 rounded-2xl object-cover border-2 border-slate-800 group-hover:border-blue-500/50 transition-all duration-500 group-hover:scale-105" />
+                                                        <img src={user.image} alt={user.name} className="w-8 h-8 xl:w-12 xl:h-12 rounded-xl xl:rounded-2xl object-cover border-2 border-slate-800 group-hover:border-blue-500/50 transition-all duration-500 group-hover:scale-105" />
                                                     ) : (
-                                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center text-white font-normal text-lg uppercase shadow-lg shadow-blue-900/20 group-hover:scale-105 transition-all">
+                                                        <div className="w-8 h-8 xl:w-12 xl:h-12 rounded-xl xl:rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-800 flex items-center justify-center text-white font-normal text-sm xl:text-lg uppercase shadow-lg shadow-blue-900/20 group-hover:scale-105 transition-all">
                                                             {user.name?.charAt(0) || 'U'}
                                                         </div>
                                                     )}
-                                                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#111922] ${user.isApproved ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                                    <div className={`absolute -bottom-1 -right-1 w-3 h-3 xl:w-4 xl:h-4 rounded-full border-2 border-[#111922] ${user.isApproved ? 'bg-emerald-500' : 'bg-red-500'}`} />
                                                 </div>
-                                                <div className="flex flex-col">
-                                                    <span className={`text-sm font-normal tracking-tight group-hover:text-blue-400 transition-colors uppercase ${headText}`}>{user.name}</span>
-                                                    <span className={`text-[11px] font-mono ${isDarkMode ? 'text-slate-500' : 'text-slate-600'} flex items-center gap-1.5 mt-0.5`}>
-                                                        <span className="w-1 h-1 bg-blue-500 rounded-full" /> {user.email}
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className={`text-[11px] xl:text-sm font-normal tracking-tight group-hover:text-blue-400 transition-colors uppercase truncate ${headText}`}>{user.name}</span>
+                                                    <span className={`text-[9px] xl:text-[11px] font-mono ${isDarkMode ? 'text-slate-500' : 'text-slate-600'} flex items-center gap-1 mt-0.5 w-full`}>
+                                                        <span className="w-1 h-1 bg-blue-500 rounded-full shrink-0" />
+                                                        <span className="truncate max-w-[120px] xl:max-w-[200px]" title={user.email}>{user.email}</span>
                                                     </span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-7">
-                                            <div className="flex flex-col">
-                                                <span className={`text-xs font-normal ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{user.companyName || 'INDEPENDENT'}</span>
-                                                <div className="flex items-center gap-1.5 mt-1">
-                                                    <Globe size={10} className="text-blue-500" />
-                                                    <span className="text-[9px] font-normal text-slate-500 uppercase tracking-widest">
+                                        <td className="px-2 xl:px-6 py-5 xl:py-7">
+                                            <div className="flex flex-col min-w-0 max-w-[120px] xl:max-w-none">
+                                                <span className={`text-[10px] xl:text-xs font-normal truncate ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`} title={user.companyName}>{user.companyName || 'INDEPENDENT'}</span>
+                                                <div className="flex items-center gap-1 xl:gap-1.5 mt-1">
+                                                    <Globe size={10} className="text-blue-500 shrink-0" />
+                                                    <span className="text-[7px] xl:text-[9px] font-normal text-slate-500 uppercase tracking-widest truncate">
                                                         {user.city && user.country ? `${user.city}, ${user.country}` : user.country || user.city || 'LOCATION UNDEFINED'}
                                                     </span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-7 text-center">
-                                            <span className={`inline-flex px-3 py-1.5 rounded-lg text-[10px] font-normal uppercase tracking-widest border transition-all shadow-sm ${user.role === 'admin'
+                                        <td className="px-2 xl:px-6 py-5 xl:py-7 text-center whitespace-nowrap">
+                                            <span className={`inline-flex px-1.5 xl:px-3 py-1 xl:py-1.5 rounded-lg text-[8px] xl:text-[10px] font-normal uppercase tracking-wider xl:tracking-widest border transition-all shadow-sm ${user.role === 'admin'
                                                 ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                                 : isDarkMode
                                                     ? 'bg-slate-800/40 text-slate-400 border-slate-700'
@@ -373,29 +374,29 @@ export const Users = () => {
                                                 {user.role}
                                             </span>
                                         </td>
-                                        <td className="px-8 py-7 text-center">
+                                        <td className="px-2 xl:px-6 py-5 xl:py-7 text-center whitespace-nowrap">
                                              <button
                                                  onClick={() => !user.isApproved && handleApprove(user)}
-                                                 className={`mx-auto flex items-center justify-center gap-2 group/status px-3 py-2 rounded-xl transition-all ${user.isApproved
+                                                 className={`mx-auto flex items-center justify-center gap-1.5 xl:gap-2 group/status px-1.5 xl:px-3 py-1 xl:py-2 rounded-lg xl:rounded-xl transition-all ${user.isApproved
                                                     ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500'
                                                     : 'bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer'}`}
                                             >
-                                                <div className={`w-2 h-2 rounded-full ${user.isApproved ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
-                                                <span className="text-xs font-normal uppercase tracking-widest">{user.isApproved ? 'Authorized' : 'Pending'}</span>
+                                                <div className={`w-1.5 h-1.5 xl:w-2 xl:h-2 rounded-full ${user.isApproved ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-red-500'}`} />
+                                                <span className="text-[8px] xl:text-xs font-normal uppercase tracking-wider xl:tracking-widest">{user.isApproved ? 'Authorized' : 'Pending'}</span>
                                             </button>
                                         </td>
-                                        <td className="px-8 py-7 text-center">
-                                            <div className="flex flex-col items-center gap-2">
+                                        <td className="px-2 xl:px-6 py-5 xl:py-7 text-center whitespace-nowrap">
+                                            <div className="flex flex-col items-center gap-1.5 xl:gap-2">
                                                 <button
                                                     onClick={() => dispatch(toggleApiAccess({ id: user._id, isApiOpen: !user.isApiOpen }))}
-                                                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 transform active:scale-95 ${user.isApiOpen
+                                                    className={`w-full flex items-center justify-center gap-1.5 xl:gap-2 px-2 xl:px-4 py-1 xl:py-2 rounded-lg xl:rounded-xl border transition-all duration-300 transform active:scale-95 ${user.isApiOpen
                                                         ? 'bg-emerald-600/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-600 hover:text-white'
                                                         : 'bg-slate-800/50 text-slate-500 border-slate-700 hover:bg-slate-700 hover:text-white'}`}
                                                 >
                                                     {user.isApiOpen ? (
-                                                        <><Globe className="animate-spin-slow" size={12} /> <span className="text-xs font-normal uppercase tracking-widest">Active</span></>
+                                                        <><Globe className="animate-spin-slow" size={10} /> <span className="text-[8px] xl:text-xs font-normal uppercase tracking-wider xl:tracking-widest">Active</span></>
                                                     ) : (
-                                                        <><Lock size={12} /> <span className="text-xs font-normal uppercase tracking-widest">Deactive</span></>
+                                                        <><Lock size={10} /> <span className="text-[8px] xl:text-xs font-normal uppercase tracking-wider xl:tracking-widest">Deactive</span></>
                                                     )}
                                                 </button>
                                                 {user.isApiOpen && user.companyName && (
@@ -404,7 +405,7 @@ export const Users = () => {
                                                             navigator.clipboard.writeText(`${import.meta.env.VITE_API_BASE_URL}/${user.companyName.replace(/\s+/g, '-').toLowerCase()}`);
                                                             toast.info(`API URL for ${user.companyName} copied`);
                                                         }}
-                                                        className="text-[10px] font-normal text-blue-500 hover:text-blue-400 transition-colors uppercase tracking-[0.2em]"
+                                                        className="text-[8px] xl:text-[10px] font-normal text-blue-500 hover:text-blue-400 transition-colors uppercase tracking-wider xl:tracking-[0.2em]"
                                                     >
                                                         Copy Link
                                                     </button>
@@ -413,14 +414,14 @@ export const Users = () => {
                                         </td>
 
 
-                                        <td className="px-8 py-7 text-right">
-                                            <div className="flex justify-end gap-3">
+                                        <td className="px-2 xl:px-6 py-5 xl:py-7 text-right relative whitespace-nowrap">
+                                            <div className="flex justify-end gap-1.5 xl:gap-3">
                                                 <button
                                                     onClick={() => { setSelectedUser(user); setIsViewModalOpen(true); }}
-                                                    className={`p-2.5 rounded-2xl transition-all duration-300 ${isDarkMode ? 'bg-slate-800/50 text-slate-400 hover:bg-blue-600 hover:text-white' : 'bg-slate-100 text-slate-500 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/20'}`}
+                                                    className={`p-1.5 xl:p-2.5 rounded-xl xl:rounded-2xl transition-all duration-300 ${isDarkMode ? 'bg-slate-800/50 text-slate-400 hover:bg-blue-600 hover:text-white' : 'bg-slate-100 text-slate-500 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/20'}`}
                                                     title="View Profile"
                                                 >
-                                                    <Eye size={18} />
+                                                    <Eye size={14} className="xl:w-[18px] xl:h-[18px]" />
                                                 </button>
                                                 <div className="relative group/menu">
                                                     <button
@@ -428,11 +429,11 @@ export const Users = () => {
                                                             e.stopPropagation();
                                                             setActiveMenu(activeMenu === user._id ? null : user._id);
                                                         }}
-                                                        className={`p-2.5 rounded-2xl transition-all duration-300 shadow-sm ${activeMenu === user._id
+                                                        className={`p-1.5 xl:p-2.5 rounded-xl xl:rounded-2xl transition-all duration-300 shadow-sm ${activeMenu === user._id
                                                             ? 'bg-blue-600 text-white rotate-90 scale-110 shadow-blue-500/40 shadow-lg'
                                                             : isDarkMode ? 'bg-[#111111]/50 text-slate-400 hover:bg-slate-700 hover:text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                                                     >
-                                                        <MoreVertical size={18} />
+                                                        <MoreVertical size={14} className="xl:w-[18px] xl:h-[18px]" />
                                                     </button>
 
                                                     <AnimatePresence>
@@ -448,7 +449,7 @@ export const Users = () => {
                                                                         className={`absolute right-0 ${isLastFew ? 'bottom-full mb-3' : 'top-full mt-3'} w-56 bg-[#1A242F] border border-slate-700/50 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 py-3 overflow-hidden backdrop-blur-xl`}
                                                                     >
                                                                         <div className="px-4 py-2 border-b border-slate-800/50 mb-2">
-                                                                            <p className="text-xs font-normal text-slate-500 uppercase tracking-widest">Command Center</p>
+                                                                            <p className="text-xs font-normal text-slate-500 uppercase tracking-widest text-left">Command Center</p>
                                                                         </div>
                                                                         {!user.isApproved && (
                                                                             <button onClick={() => handleApprove(user)} className="w-full flex items-center gap-3 px-5 py-3 text-xs font-normal uppercase tracking-widest text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all">
@@ -580,15 +581,15 @@ const StatCard = ({ title, value, icon, trend, trendColor }) => {
     const activeColor = trendColor || defaultColor;
 
     return (
-        <div className={`border p-6 sm:p-7 rounded-3xl flex justify-between items-start shadow-lg transition-colors ${cardBg}`}>
-            <div>
-                <p className="text-[10px] font-normal text-slate-500 uppercase tracking-widest mb-1">{title}</p>
+        <div className={`border p-5 lg:p-6 xl:p-7 rounded-2xl xl:rounded-3xl flex justify-between items-start shadow-lg transition-colors ${cardBg}`}>
+            <div className="flex-1 min-w-0 pr-3">
+                <p className="text-[10px] font-normal text-slate-500 uppercase tracking-widest mb-1 truncate">{title}</p>
                 <h3 className={`text-2xl sm:text-3xl font-normal mb-2 tracking-tighter ${headText}`}>{value}</h3>
-                <span className={`text-[10px] font-normal px-2 py-0.5 rounded-full ${activeColor}`}>
+                <span className={`text-[9px] xl:text-[10px] font-normal px-2 py-0.5 rounded-full inline-block whitespace-nowrap ${activeColor}`}>
                     {trend}
                 </span>
             </div>
-            <div className={`p-4 rounded-2xl border shadow-inner ${iconBoxBg}`}>
+            <div className={`p-3 xl:p-4 rounded-xl xl:rounded-2xl border shadow-inner shrink-0 ${iconBoxBg}`}>
                 {icon}
             </div>
         </div>

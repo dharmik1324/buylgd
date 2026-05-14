@@ -27,10 +27,10 @@ export const AppDiamondDetails = ({ onClose, diamond: rawDiamond, isDarkMode }) 
 
     const getCertificateUrl = (diamond) => {
         if (diamond.Certificate_Image) return sanitizeUrl(diamond.Certificate_Image);
-        
+
         const lab = (diamond.Lab || "").toUpperCase();
         const reportNo = diamond.Report || diamond.Report_No || diamond.Certificate_No || diamond.Stock_No;
-        
+
         if (!reportNo || reportNo === "—") return "";
 
         // Standard Lab Verification Links
@@ -43,7 +43,7 @@ export const AppDiamondDetails = ({ onClose, diamond: rawDiamond, isDarkMode }) 
         if (lab.includes("HRD")) {
             return `https://my.hrdantwerp.com/?id=34&record_number=${reportNo}`;
         }
-        
+
         return "";
     };
 
@@ -51,7 +51,7 @@ export const AppDiamondDetails = ({ onClose, diamond: rawDiamond, isDarkMode }) 
         { type: "image", src: sanitizeUrl(diamond.Diamond_Image) },
         { type: "video", src: sanitizeUrl(diamond.Diamond_Video) },
         { type: "cert", src: getCertificateUrl(diamond) },
-    ].filter(t => t.src || t.type === 'cert');
+    ].filter(t => t.src);
 
     const videoIndex = displayThumbs.findIndex(t => t.type === 'video');
     const [selectedThumb, setSelectedThumb] = useState(videoIndex !== -1 ? videoIndex : 0);
@@ -160,17 +160,23 @@ export const AppDiamondDetails = ({ onClose, diamond: rawDiamond, isDarkMode }) 
 
     // Fields to exclude from the dynamic list (already shown elsewhere or internal)
     const excludeFields = [
-        "_id", "__v", "createdAt", "updatedAt", "Diamond_Image", "Diamond_Video", 
-        "Certificate_Image", "Final_Price", "Price_Per_Carat", "source", "onHold", 
-        "holdBy", "holdExpiresAt", "Availability", "Stock", "Source", "Reports"
+        "_id", "__v", "createdAt", "updatedAt", "Diamond_Image", "Diamond_Video",
+        "Certificate_Image", "Final_Price", "Price_Per_Carat", "source", "onHold",
+        "holdBy", "holdExpiresAt", "Availability", "Stock", "Source", "Reports",
+        "VideoLink", "ImageLink", "Certificate", "Certificate_Link", "Cert_Link",
+        "Video_Link", "Image_Link", "Certificate_file_url", "certiFile", "certi_file",
+        "View Certi", "certi_url", "imageLink", "videoLink", "Stone_Img_url", "Image",
+        "View Image", "img_url", "photo", "image_url", "img", "Video_url", "video_url",
+        "Video Link", "view_video", "Video", "Certificate_URL", "cert_url",
+        "certLink", "CertificateLink", "CertLink", "cert_link"
     ];
 
     const specs = [];
-    
+
     // 1. Add mapped standard fields in preferred order
     const standardOrder = [
         "Lab", "Depth", "Report", "table_name", "Shape", "Girdle", "Weight", "Crown",
-        "Color", "Pavilion", "Clarity", "Culet", "Cut", "Measurements", "Polish", 
+        "Color", "Pavilion", "Clarity", "Culet", "Cut", "Measurements", "Polish",
         "Ratio", "Symmetry", "Bgm", "Fluorescence", "Treatment", "Location", "Growth_Type"
     ];
 
@@ -394,36 +400,24 @@ export const AppDiamondDetails = ({ onClose, diamond: rawDiamond, isDarkMode }) 
                                     }
 
                                     if (activeThumb.type === 'cert') {
-                                        if (!activeThumb.src) {
-                                            return (
-                                                <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-white/60 rounded-3xl backdrop-blur-sm">
-                                                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-300">
-                                                        <FileText size={40} />
-                                                    </div>
-                                                    <h3 className="text-xl font-medium text-gray-800 mb-2">Certificate Not Available</h3>
-                                                    <p className="text-sm text-gray-500 max-w-sm mb-6">
-                                                        Official documentation is currently being processed for this diamond. 
-                                                        Please contact us for more details or to request priority access.
-                                                    </p>
-                                                    <button 
-                                                        onClick={() => setShowSupportModal(true)}
-                                                        className="px-6 py-2.5 bg-[#e5a020] text-white rounded-xl font-bold text-sm shadow-md hover:bg-[#d49018] flex items-center gap-2"
-                                                    >
-                                                        <MessageSquare size={16} /> Inquire with a Specialist
-                                                    </button>
-                                                </div>
-                                            );
-                                        }
                                         return (
-                                            <div className="w-full h-full flex flex-col p-2">
-                                                <div className="flex-1 rounded-2xl overflow-hidden border border-gray-200/50 bg-white relative">
-                                                    <iframe src={activeThumb.src} className="w-full h-full border-none" title="Report" sandbox="allow-scripts allow-same-origin allow-popups" />
+                                            <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-[#111111] rounded-3xl border border-[#333333] shadow-xl relative overflow-hidden">
+                                                {/* Decorative background glow */}
+                                                <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-30 pointer-events-none">
+                                                    <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] bg-blue-600 blur-[120px] rounded-full" />
+                                                    <div className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] bg-[#e5a020] blur-[120px] rounded-full" />
                                                 </div>
-                                                <div className="mt-4 flex justify-center">
-                                                    <a href={activeThumb.src} target="_blank" rel="noopener noreferrer" className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-blue-700 flex items-center gap-2">
-                                                        <FileText size={16} /> Open Official Report
-                                                    </a>
+
+                                                <div className="w-20 h-20 bg-[#222222] rounded-full flex items-center justify-center mb-6 text-gray-300 shadow-sm border border-[#444444] relative z-10">
+                                                    <FileText size={40} />
                                                 </div>
+                                                <h3 className="text-2xl font-bold text-white mb-3 relative z-10">Official Lab Certificate</h3>
+                                                <p className="text-gray-400 max-w-sm mb-8 relative z-10 text-sm leading-relaxed">
+                                                    The official grading report for this diamond is available. Click below to securely view the full document in a new tab.
+                                                </p>
+                                                <a href={activeThumb.src} target="_blank" rel="noopener noreferrer" className="bg-[#e5a020] text-white px-8 py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-[#e5a020]/20 hover:bg-[#d49018] flex items-center gap-2 hover:scale-105 transition-all relative z-10">
+                                                    <FileText size={18} /> Open Official Report
+                                                </a>
                                             </div>
                                         );
                                     }
@@ -469,10 +463,6 @@ export const AppDiamondDetails = ({ onClose, diamond: rawDiamond, isDarkMode }) 
                         <div className="flex flex-col gap-1 text-left w-full mb-6 max-w-[500px]">
                             {/* Breadcrumb */}
                             <div className={`flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-medium mb-4 ${textSub}`}>
-                                <span>Stones</span>
-                                <ChevronRight size={11} />
-                                <span>Loose Diamonds</span>
-                                <ChevronRight size={11} />
                                 <span className={isDarkMode ? "text-slate-200" : "text-[#333]"}>
                                     {diamond.Shape} {diamond.Cut ? `${diamond.Cut} Cut` : "Brilliant"}
                                 </span>
@@ -535,12 +525,14 @@ export const AppDiamondDetails = ({ onClose, diamond: rawDiamond, isDarkMode }) 
                                 <ChevronRight className="rotate-[-90deg] text-gray-400" size={18} />
                             </div>
                             <div className="p-5 grid grid-cols-2 gap-x-6 gap-y-3">
-                                {specs.map(({ label, value }) => (
-                                    <div key={label} className="grid grid-cols-[1fr_1.5fr] items-baseline text-xs md:text-sm">
-                                        <span className={`font-medium ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>{label}</span>
-                                        <span className={`font-bold pl-2 ${isDarkMode ? "text-gray-200" : "text-gray-900"} break-words`}>{value}</span>
-                                    </div>
-                                ))}
+                                {specs.map(({ label, value }) => {
+                                    return (
+                                        <div key={label} className="grid grid-cols-[1fr_1.5fr] items-baseline text-xs md:text-sm" >
+                                            <span className={`font-medium ${isDarkMode ? "text-gray-500" : "text-gray-500"}`}>{label}</span>
+                                            <span className={`font-bold pl-2 ${isDarkMode ? "text-gray-200" : "text-gray-900"} break-words`}>{value}</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -625,7 +617,7 @@ export const AppDiamondDetails = ({ onClose, diamond: rawDiamond, isDarkMode }) 
 
                     </div>
                 </div>
-            </div>
+            </div >
         </>
     );
 };

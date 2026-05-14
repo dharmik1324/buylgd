@@ -237,6 +237,7 @@ export const DiamondFilterSidebar = ({
                             min={filters.caratMin ?? metaCaratMin}
                             max={filters.caratMax ?? metaCaratMax}
                             onChange={handleRangeChange}
+                            onSetRange={(newMin, newMax) => updateFilters({ caratMin: newMin, caratMax: newMax })}
                             isDarkMode={isDarkMode}
                         />
                     </div>
@@ -328,7 +329,7 @@ export const DiamondFilterSidebar = ({
     );
 };
 
-function RangeSection({ label, field, min, max, onChange, isDarkMode }) {
+function RangeSection({ label, field, min, max, onChange, onSetRange, isDarkMode }) {
     const focusRing = isDarkMode ? "focus:ring-blue-500" : "focus:ring-blue-400";
     return (
         <div>
@@ -354,11 +355,28 @@ function RangeSection({ label, field, min, max, onChange, isDarkMode }) {
             </div>
             {field === 'carat' && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                    {['0.30-0.39', '0.40-0.49', '0.50-0.69', '0.70-0.89'].map(range => (
-                        <button key={range} className={`px-2 py-1.5 text-[10px] sm:text-xs font-semibold rounded-md border ${isDarkMode ? "border-gray-700 text-gray-300 hover:bg-[#333]" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
-                            {range}
-                        </button>
-                    ))}
+                    {['0.30-0.39', '0.40-0.49', '0.50-0.69', '0.70-0.89'].map(range => {
+                        const [rMin, rMax] = range.split('-').map(Number);
+                        const isActive = (min === rMin && max === rMax);
+                        
+                        return (
+                            <button 
+                                key={range} 
+                                onClick={() => onSetRange && onSetRange(rMin, rMax)}
+                                className={`px-2 py-1.5 text-[10px] sm:text-xs font-semibold rounded-md border transition-all ${
+                                    isActive
+                                        ? isDarkMode
+                                            ? "bg-blue-900/30 border-blue-500/50 text-blue-400"
+                                            : "bg-blue-50 border-blue-300 text-blue-600"
+                                        : isDarkMode 
+                                            ? "border-gray-700 text-gray-300 hover:bg-[#333]" 
+                                            : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                }`}
+                            >
+                                {range}
+                            </button>
+                        );
+                    })}
                 </div>
             )}
         </div>
